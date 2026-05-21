@@ -1,0 +1,825 @@
+{
+  "name": "multiple prompts",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook MTR Upload1')[idx]?.json || {};\n  const out = j.output || j.data?.output || j.data || j.result?.output || j.result || j;\n  return {\n    json: {\n      mtr_id: j.mtr_id || original.mtr_id || original.mtrId || '',\n      output: out,\n    }\n  };\n});\n"
+      },
+      "id": "dad91308-718f-41e5-bb4b-cef94a078cd4",
+      "name": "Extract Claude Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        98384,
+        55904
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json || {};\n  const text = (j.content && j.content[0] && j.content[0].text) || '';\n  let obj = {};\n  try {\n    obj = JSON.parse(text.trim());\n  } catch (e) {\n    const a = text.indexOf('{');\n    const b = text.lastIndexOf('}');\n    if (a >= 0 && b > a) {\n      try { obj = JSON.parse(text.slice(a, b + 1)); } catch (_) {}\n    }\n  }\n  return {\n    json: {\n      ...j,\n      output: obj,\n    },\n    binary: item.binary\n  };\n});\n"
+      },
+      "id": "4219449a-2530-4d26-b09b-b62ed28e5a4c",
+      "name": "Parse Claude Extract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        98128,
+        55904
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.claude_extract_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "29c874a4-dcc0-4cb9-ba05-f3641ee20fbb",
+      "name": "Claude Extract MTR",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        98048,
+        55616
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zQH1AIJA5SRsvfu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst promises = items.map(async (item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || {};\n  let pdf = j.file_content_base64 || original.file_content_base64 || '';\n\n  if (!pdf) {\n    try {\n      const buf = await this.helpers.getBinaryDataBuffer(idx, 'data0');\n      pdf = buf.toString('base64');\n    } catch (e) {}\n  }\n\n  const prompt = (j.selected_prompt || j.extraction_system_message || '').toString().trim();\n  if (!pdf || !prompt) {\n    throw new Error('Missing pdf or prompt');\n  }\n\n  return {\n    json: {\n      ...original,\n      ...j,\n      file_content_base64: original.file_content_base64 || j.file_content_base64,\n      claude_extract_body: {\n        model: 'claude-sonnet-4-6',\n        max_tokens: 8192,\n        messages: [\n          {\n            role: 'user',\n            content: [\n              { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf } },\n              { type: 'text', text: prompt }\n            ]\n          }\n        ]\n      }\n    }\n  };\n});\n\nreturn Promise.all(promises);\n"
+      },
+      "id": "2694c94c-07e5-44be-a8ef-6d1b96f59c6c",
+      "name": "Prepare Claude Extract Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        97664,
+        55600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.map((item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || {};\n  const text = (j.content && j.content[0] && j.content[0].text) || '';\n  let obj = {};\n  try {\n    obj = JSON.parse(text.trim());\n  } catch (e) {\n    const a = text.indexOf('{');\n    const b = text.lastIndexOf('}');\n    if (a >= 0 && b > a) {\n      try { obj = JSON.parse(text.slice(a, b + 1)); } catch (_) {}\n    }\n  }\n  return {\n    json: {\n      ...original,\n      ...j,\n      output: obj,\n    }\n  };\n});\n"
+      },
+      "id": "ecefb2fc-0a46-412a-9b98-13f59653fa67",
+      "name": "Parse Claude Manufacturer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96432,
+        55600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.claude_manu_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "4adb5a59-dd03-45ba-8c19-77f281724813",
+      "name": "Claude Detect Manufacturer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        96224,
+        55600
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zQH1AIJA5SRsvfu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.map((item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || {};\n  const pdf = j.manufacturer_pdf_base64 || j.file_content_base64 || original.file_content_base64 || '';\n  if (!pdf) {\n    throw new Error('Missing manufacturer pdf');\n  }\n\n  const prompt = `You are a strict classifier for MTR manufacturer names.\nReturn ONLY valid JSON with the key \"manufacturer\".\nChoose the closest match from this list, or return \"\" if not present.\nDo not add extra keys.\n\nList:\n- JANCO_STEEL\n- CHAPEL_STEEL\n- Nucor steel-berkeley\n- Cleveland-cliffs plate llc\n- North America stainless Canada inc\n- nucor steel Norfolk\n- Nelson steel company\n- wuyang iron and steel co. ltd\n- Kocaer Celik san ve tic as\n- Novasco\n- Demir cel ik\n- gautier steel\n- ALGOMA\n- ILSENBURGER\n- INDUSTEEL\n- ATLANTIC TUBE\n- LEECOL\n- CLEVELAND CLIFF\n- NOVA TUBE\n- STEEL DYNAMICS\n- CHINA STEEL\n- NIAGARA LASALLE\n- NUCOR STEEL\n- SWVA KENTUCKY\n- THE STEEL SUPPLY\n- TUBE INVESTMENTS\n- ZHEJIANG MINGHE\n- AM/NS CALVERT\n- GERDAU\n- AECELORMITTAL\n- SWVA, INC\n- SSAB\n- GAUTIER STEEL\n- WELDED TUBE\n- STEEL WAREHOUSE\n- ALLIANCE TUBULAR\n- AMERICAN HEAVY\n- MARUCHI LEAVITT\n- JADE STERLING\n- B&T STEEL\n- EVRAZ\n- ATLAS TUBE\n- ACIER FATI\n- ALTON STEEL\n- NLMK\n- BULL MOOSE\n- VOESTALPINE STAHI\n- KOCAER CELIK SAN\n- WUYANG IRON\n- NELSEN STEEL\n- NUCOR STEEL NOR\n- NORTH AMERICAN`;\n\n  return {\n    json: {\n      ...original,\n      ...j,\n      file_content_base64: original.file_content_base64 || j.file_content_base64,\n      claude_manu_body: {\n        model: 'claude-sonnet-4-6',\n        max_tokens: 512,\n        messages: [\n          {\n            role: 'user',\n            content: [\n              { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf } },\n              { type: 'text', text: prompt }\n            ]\n          }\n        ]\n      }\n    }\n  };\n});\n"
+      },
+      "id": "1c5f6be4-750e-48bf-85c8-fd3f04cd9100",
+      "name": "Prepare Claude Manufacturer Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96032,
+        55600
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "manufacturer_pdf_base64",
+              "value": "={{ $json.stdout }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "debe48ae-e985-47f1-b5e4-922ddcaf70a4",
+      "name": "Set Manufacturer PDF",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        95824,
+        55600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.map(item => {\n  const j = item.json || {};\n  let prompt = (j.selected_prompt || j.extraction_system_message || '').toString().trim();\n  let prompt_missing = false;\n  if (!prompt) {\n    prompt_missing = true;\n    // Minimal safe fallback to avoid hard stop\n    prompt = 'Return {}';\n  }\n  return { \n    json: { ...j, selected_prompt: prompt, extraction_system_message: prompt, prompt_missing }\n  };\n});\n"
+      },
+      "id": "d1369e3c-12c0-4e5e-9c2a-c721a40dd3dd",
+      "name": "Validate Prompt Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        97376,
+        55632
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.map(item => {\n  const j = item.json || {};\n  const key = (j.manufacturer_key || '').toString().trim();\n  const name = (j.manufacturer_name || '').toString().trim();\n\n  const prompts = {\n   ACIER_FATI: `You are an expert system for extracting structured Mill Test Report (MTR) data.\n\nThese documents are single-page structured reports with MULTIPLE HEAT BLOCKS.\n\n-------------------------------------\nCRITICAL RULES (STRICT)\n-------------------------------------\n\n1. DO NOT hallucinate or infer values.\n2. If a value is missing \u2192 return \"\".\n3. Preserve values EXACTLY (including PSI, %, decimals).\n4. DO NOT calculate or modify values except where specified.\n5. Output MUST be strictly valid JSON.\n6. Each HEAT block = separate materialTestRecord.\n\n-------------------------------------\nENTITY SELECTION RULE (OVERRIDE)\n-------------------------------------\n\nAlways extract the entity name from PAGE 1 header.\n\n-------------------------------------\nDOCUMENT STRUCTURE\n-------------------------------------\n\nTop Section:\n- Company (FATI Steel)\n- Bill of Lading No\n- Document Date\n- Sales Order\n- PO Number\n- Customer (Sold To / Ship To)\n\nMain Body:\n- Multiple repeating HEAT BLOCKS:\n  Each block contains:\n    - Description\n    - Heat Number\n    - Steel Mill\n    - Country info\n    - Chemical table\n    - Mechanical values\n    - Certification\n\nExample blocks visible :contentReference[oaicite:1]{index=1}  \n\n-------------------------------------\nSECTION 1 \u2014 CERTIFICATE HEADER\n-------------------------------------\n\nExtract:\n\n- manufacturer \u2192 entity from page header\n- address \u2192 company address block\n- contact \u2192 \"\"\n- website \u2192 \"\"\n- certificateType \u2192 \"Mill Test Report\"\n- certificateNumber \u2192 TEST CERT #\n- certificateDate \u2192 Document Date\n- article \u2192 first Description line\n- grade \u2192 MUST follow rule below\n- specifications \u2192 Certification value\n- poNumber \u2192 \"Your Purchase Order No.\"\n- customer \u2192 Sold To block\n- quantity \u2192 \"\" (not clearly defined globally)\n- size \u2192 from Description (first block)\n- netWeight \u2192 \"\"\n\n-------------------------------------\nGRADE NORMALIZATION RULE\n-------------------------------------\n\nGrade MUST be derived from Certification field.\n\nExample:\n\"ASTM A500 GR B/C, ERW\"\n\nRules:\n\n1. Extract only main grade:\n   \u2192 \"ASTM A500 GR B/C\"\n\n2. Remove suffix like:\n   - ERW\n   - commas\n\n3. Preserve spacing exactly\n\n-------------------------------------\nSECTION 2 \u2014 MATERIAL TEST RECORDS\n-------------------------------------\n\nEach HEAT BLOCK = one record\n\nExtract per block:\n\n- heatNumber \u2192 Heat Number\n- batchNumber \u2192 \"\"\n- testNumber \u2192 \"Sample 1\"\n- pieceCount \u2192 \"\"\n- weight \u2192 \"\"\n\n-------------------------------------\nSECTION 3 \u2014 CHEMICAL COMPOSITION\n-------------------------------------\n\nFrom chemical row in each block\n\nMap:\n\nC, Mn, P, S, Si, Al, Cu, Nb (Cb), Mo, Ni, Cr, B, V, Sn\n\nRules:\n- Keep exact numeric values\n- Map Cb \u2192 Nb\n- Ignore CE or store separately if needed\n\n-------------------------------------\nSECTION 4 \u2014 MECHANICAL PROPERTIES\n-------------------------------------\n\nFrom same block:\n\n- yieldStrength \u2192 Yield (Psi)\n- tensileStrength \u2192 Tensile (Psi)\n- elongation \u2192 ELN.2IN (%)\n\n-------------------------------------\nSECTION 5 \u2014 PHYSICAL PROPERTIES\n-------------------------------------\n\nNot present \u2192 keep empty\n\n-------------------------------------\nSECTION 6 \u2014 ORIGIN DATA\n-------------------------------------\n\nExtract:\n\n- countryOfManufacture \u2192 \"Made in\"\n- countryOfMeltPour \u2192 \"Melted and Poured in\"\n\n-------------------------------------\nSECTION 7 \u2014 MISCELLANEOUS\n-------------------------------------\n\nExtract:\n\n- standard \u2192 Certification value\n- remarks \u2192 certification paragraph at bottom\n\n-------------------------------------\nOUTPUT FORMAT (STRICT)\n-------------------------------------\n\n[\n  {\n    \"mtr_id\": <number>,\n    \"output\": {\n      \"certificateHeader\": {\n        \"manufacturer\": \"\",\n        \"address\": \"\",\n        \"contact\": \"\",\n        \"website\": \"\",\n        \"certificateType\": \"\",\n        \"certificateNumber\": \"\",\n        \"certificateDate\": \"\",\n        \"article\": \"\",\n        \"grade\": \"\",\n        \"specifications\": [],\n        \"poNumber\": \"\",\n        \"customer\": \"\",\n        \"quantity\": \"\",\n        \"size\": \"\",\n        \"netWeight\": \"\"\n      },\n      \"materialTestRecords\": [\n        {\n          \"heatNumber\": \"\",\n          \"batchNumber\": \"\",\n          \"testNumber\": \"Sample 1\",\n          \"pieceCount\": \"\",\n          \"weight\": \"\",\n          \"chemicalComposition\": {\n            \"C\": \"\",\n            \"Mn\": \"\",\n            \"Si\": \"\",\n            \"P\": \"\",\n            \"S\": \"\",\n            \"Cu\": \"\",\n            \"Ni\": \"\",\n            \"Cr\": \"\",\n            \"Mo\": \"\",\n            \"Nb\": \"\",\n            \"Cb\": \"\",\n            \"V\": \"\",\n            \"Al\": \"\",\n            \"B\": \"\"\n          },\n          \"mechanicalProperties\": {\n            \"yieldStrength\": \"\",\n            \"tensileStrength\": \"\",\n            \"elongation\": \"\",\n            \"reductionArea\": \"\",\n            \"hardness\": \"\",\n            \"impactCharpy\": \"\",\n            \"Dir\": \"\",\n            \"Plate_dimension\": \"\",\n            \"thickness\": \"\"\n          },\n          \"physicalProperties\": {\n            \"diameter\": \"\",\n            \"coatingThickness\": \"\",\n            \"sectionalAreaCondition\": \"\",\n            \"surfaceCondition\": \"\"\n          }\n        }\n      ],\n      \"miscellaneous\": {\n        \"countryOfMeltPour\": \"\",\n        \"countryOfManufacture\": \"\",\n        \"standard\": \"\",\n        \"remarks\": \"\"\n      }\n    }\n  }\n]\n\n-------------------------------------\nSPECIAL HANDLING RULES\n-------------------------------------\n\n1. Each block = separate record (DO NOT merge)\n2. Multiple heats \u2192 multiple entries\n3. Chemical + mechanical must stay within same block\n4. Grade always from Certification (NOT description)\n5. Ignore duplicate headers\n6. Maintain strict structure\n\n-------------------------------------\nFINAL INSTRUCTION\n-------------------------------------\n\nReturn ONLY valid JSON.\nNo explanation.\nNo extra text.`,\nAECELORMITTAL: '',\nALGOMA: `You are an expert extractor for Algoma Steel MTRs.\n\nReturn only the fields that are needed by Odoo.\nDo not include header-only extras or vendor scratch fields.\nDo not hallucinate or infer. Use empty strings for missing values. Return only valid JSON.\n\nRequired output fields only:\n- certificateHeader: manufacturer, certificateNumber, certificateDate, grade\n- materialTestRecords: heatNumber, batchNumber, pieceCount, weight, chemicalComposition, mechanicalProperties\n- miscellaneous: countryOfMeltPour, countryOfManufacture\n\nChemical composition keys only:\nC, Mn, Si, P, S, B, V, Nb, Ti, Al, Ca, Zr, Zn, Sn, Cu, Ni, Cr, Mo, N\n\nMechanical properties keys only:\nyieldStrength, tensileStrength, elongation, reductionArea, hardness, thickness, impactCharpy, direction, plate_dimension, impact_test_temp, impact_coupon_size, impact_specimen_1, impact_specimen_2, impact_specimen_3, impact_average\n\nExtraction rules:\n- manufacturer: use the issuer name if shown, otherwise Algoma Steel\n- certificateNumber: capture the certificate or TC number exactly\n- certificateDate: capture the report date exactly\n- grade: capture the steel grade or specification string\n- heatNumber: capture the heat number exactly\n- batchNumber: capture the batch or bundle number only if shown\n- pieceCount: capture piece count only if shown\n- weight: capture weight only if shown\n- thickness: capture wall thickness only if explicitly shown\n- plate_dimension: capture the row-level T X W X L dimension only if explicitly shown\n- direction: capture test direction only if explicitly shown\n- impact values: capture actual values only, keep them as shown\n- countryOfMeltPour and countryOfManufacture: capture only if shown\n\nFinal schema:\n[\n  {\n    \"mtr_id\": \"\",\n    \"output\": {\n      \"certificateHeader\": {\n        \"manufacturer\": \"\",\n        \"certificateNumber\": \"\",\n        \"certificateDate\": \"\",\n        \"grade\": \"\"\n      },\n      \"materialTestRecords\": [\n        {\n          \"heatNumber\": \"\",\n          \"batchNumber\": \"\",\n          \"pieceCount\": \"\",\n          \"weight\": \"\",\n          \"chemicalComposition\": {\n            \"C\": \"\",\n            \"Mn\": \"\",\n            \"Si\": \"\",\n            \"P\": \"\",\n            \"S\": \"\",\n            \"B\": \"\",\n            \"V\": \"\",\n            \"Nb\": \"\",\n            \"Ti\": \"\",\n            \"Al\": \"\",\n            \"Ca\": \"\",\n            \"Zr\": \"\",\n            \"Zn\": \"\",\n            \"Sn\": \"\",\n            \"Cu\": \"\",\n            \"Ni\": \"\",\n            \"Cr\": \"\",\n            \"Mo\": \"\",\n            \"N\": \"\"\n          },\n          \"mechanicalProperties\": {\n            \"yieldStrength\": \"\",\n            \"tensileStrength\": \"\",\n            \"elongation\": \"\",\n            \"reductionArea\": \"\",\n            \"hardness\": \"\",\n            \"impactCharpy\": \"\",\n            \"direction\": \"\",\n            \"plate_dimension\": \"\",\n            \"thickness\": \"\",\n            \"impact_test_temp\": \"\",\n            \"impact_coupon_size\": \"\",\n            \"impact_specimen_1\": \"\",\n            \"impact_specimen_2\": \"\",\n            \"impact_specimen_3\": \"\",\n            \"impact_average\": \"\"\n          }\n        }\n      ],\n      \"miscellaneous\": {\n        \"countryOfMeltPour\": \"\",\n        \"countryOfManufacture\": \"\"\n      }\n    }\n  }\n]\n`,\nWUYANG_IRON_AND_STEEL: '',\nZHEJIANG_MINGHE: `You are an expert system for extracting structured Mill Test Report (MTR) data.\n\nYou are processing MTRs from:\nZHEJIANG MINGHE STEEL PIPE CO., LTD\n\nThese documents follow a FIXED TABULAR STRUCTURE. You MUST extract data using\nVISUAL POSITION + SECTION HEADINGS \u2014 NOT assumptions.\n\n-------------------------------------\nCRITICAL EXTRACTION RULES\n-------------------------------------\n\n1. DO NOT hallucinate or infer values.\n2. If a value is missing, return \"\".\n3. Preserve values EXACTLY as written (units included).\n4. DO NOT calculate or normalize values except where explicitly instructed.\n5. If multiple rows exist \u2192 create multiple materialTestRecords.\n6. If multiple mechanical rows exist \u2192 treat each as separate test (Sample 1, Sample 2).\n7. Output MUST be strictly valid JSON.\n\n-------------------------------------\nDOCUMENT STRUCTURE (VERY IMPORTANT)\n-------------------------------------\n\nThese MTRs always contain:\n\n1. HEADER BLOCK (Top section)\n2. DIMENSION / HEAT TABLE\n3. CHEMICAL ANALYSIS TABLE\n4. SIZE + NDT TEST TABLE\n5. MECHANICAL PROPERTIES TABLE\n6. FOOTER DECLARATION\n\nYou MUST extract based on these zones.\n\n-------------------------------------\nSECTION 1 \u2014 CERTIFICATE HEADER\n-------------------------------------\n\nExtract:\n\n- manufacturer \u2192 \"ZHEJIANG MINGHE STEEL PIPE CO., LTD\"\n- address \u2192 full address line below company name\n- certificateType \u2192 \"Material Test Report\"\n- certificateNumber \u2192 \"CERTIFICATE NO.\"\n- certificateDate \u2192 date at bottom near stamp\n- customer \u2192 CUSTOMER field\n- purchaser \u2192 PURCHASER field\n- product \u2192 PRODUCT (e.g., SEAMLESS STEEL TUBE)\n- poNumber \u2192 PO NO.\n- itemNumber \u2192 ITEM NO.\n- specification \u2192 ASTM SPECIFICATION\n- grade \u2192 combination of ASTM SPECIFICATION + GRADE (see normalization rule below)\n- makingMethod \u2192 MAKING METHOD\n- deliveryCondition \u2192 DELIVERY CONDITION\n- process \u2192 PROCESS\n- meltMill \u2192 MELT MILL\n- countryOfMelt \u2192 COUNTRY OF MELT\n- countryOfManufacture \u2192 COUNTRY OF MANUFACTURE\n- reductionRatio \u2192 REDUCTION RATIO\n\n-------------------------------------\nGRADE NORMALIZATION RULE (IMPORTANT)\n-------------------------------------\n\nThe final \"grade\" field MUST be a combination of:\n\nASTM SPECIFICATION + GRADE\n\nFormat:\n\"<ASTM SPECIFICATION> <GRADE>\"\n\nExample:\nASTM SPECIFICATION = \"ASTM A519\"\nGRADE = \"1026\"\n\nFinal output:\n\"grade\": \"ASTM A519 1026\"\n\nRules:\n1. Preserve exact spacing and text.\n2. If either value is missing \u2192 return only the available value.\n3. DO NOT reorder or modify text.\n4. DO NOT duplicate if already combined.\n\n-------------------------------------\nSECTION 2 \u2014 MATERIAL TEST RECORDS\n-------------------------------------\n\nEach ROW in main table = 1 materialTestRecord\n\nExtract:\n\n- heatNumber \u2192 Heat No.\n- batchNumber \u2192 Batch No.\n- size \u2192 Size (inch) OD*WT\n- lengthFT \u2192 FT\n- bundles \u2192 Bundles\n- pieceCount \u2192 PCS\n- weightLBS \u2192 LBS\n- weightKGS \u2192 KGS\n- conditionOfDelivery \u2192 Condition of delivery\n- surfaceInspection \u2192 Surface Inspection\n- grainSize \u2192 Grain Size Value (if present)\n\n-------------------------------------\nSECTION 3 \u2014 CHEMICAL COMPOSITION\n-------------------------------------\n\nFrom \"Chemical Analysis % and Test Results\"\n\nMap EXACTLY:\n\nC, Si, Mn, P, S, Cr, Ni, Mo, Ti, Cu, Al, V\n\nReturn as strings.\n\n-------------------------------------\nSECTION 4 \u2014 SIZE + NDT TESTS\n-------------------------------------\n\nExtract:\n\n- dimensions \u2192 Dimensions (pass/fail)\n- drift \u2192 Drift\n- lengthAndWeight \u2192 Length and Weight\n- eddyCurrentTest \u2192 Eddy Current Test\n- ultrasonicTest \u2192 Ultrasonic Test\n- hydrostaticTest \u2192 Hydrostatic Test\n\n-------------------------------------\nSECTION 5 \u2014 MECHANICAL PROPERTIES\n-------------------------------------\n\nIMPORTANT:\nThere are usually TWO rows \u2192 treat as:\n\n- Sample 1\n- Sample 2\n\nFor EACH row extract:\n\n- tensileStrength (MPA/PSI EXACT)\n- yieldStrength (MPA/PSI EXACT)\n- elongation (%)\n- hardness (HRB)\n\n-------------------------------------\nSECTION 6 \u2014 REMARKS / FOOTER\n-------------------------------------\n\nFrom declaration paragraph extract:\n\n- remarks \u2192 full paragraph text\n- standard \u2192 ASTM specification (repeat if needed)\n\n-------------------------------------\nOUTPUT FORMAT (STRICT)\n-------------------------------------\n\nReturn ONLY this JSON object structure (NOT an array):\n\n{\n  \"certificateHeader\": {\n    \"manufacturer\": \"\",\n    \"address\": \"\",\n    \"certificateType\": \"\",\n    \"certificateNumber\": \"\",\n    \"certificateDate\": \"\",\n    \"customer\": \"\",\n    \"poNumber\": \"\",\n    \"shipperNumber\": \"\",\n    \"salesOrder\": \"\",\n    \"product\": \"\",\n    \"size\": \"\",\n    \"partNumber\": \"\",\n    \"grade\": \"\"\n  },\n  \"materialTestRecords\": [\n    {\n      \"heatNumber\": \"\",\n      \"bundleNumber\": \"\",\n      \"testNumber\": \"Sample 1\",\n      \"chemicalComposition\": {\n        \"C\": \"\",\n        \"Mn\": \"\",\n        \"P\": \"\",\n        \"S\": \"\",\n        \"Si\": \"\",\n        \"Al\": \"\",\n        \"Nb\": \"\",\n        \"V\": \"\"\n      },\n      \"mechanicalProperties\": {\n        \"yieldStrength\": \"\",\n        \"tensileStrength\": \"\",\n        \"elongation\": \"\"\n      },\n      \"steelWarehouse\": {\n        \"bundleNumber\": \"\",\n        \"countryOfOrigin\": \"\"\n      }\n    }\n  ],\n  \"miscellaneous\": {\n    \"countryOfMeltPour\": \"\",\n    \"countryOfManufacture\": \"\",\n    \"standard\": \"\",\n    \"remarks\": \"\"\n  }\n}\n  }\n]\n\n-------------------------------------\nSPECIAL HANDLING RULES\n-------------------------------------\n\n1. If 2 mechanical rows \u2192 duplicate record with Sample 1 & Sample 2.\n2. Chemical values are SAME for both \u2192 copy them.\n3. If Grain Size is \"/\" \u2192 return \"\".\n4. If any test shows \"pass\" \u2192 return \"pass\".\n5. If value is \"/\" \u2192 treat as \"\".\n6. DO NOT merge multiple records.\n7. DO NOT miss heat number (top-left table).\n\n-------------------------------------\nFINAL INSTRUCTION\n-------------------------------------\n\nReturn ONLY valid JSON.\nNo explanation.\nNo extra text.`,\n  };\n\n  const generic_fallback_prompt = '';// TODO: fill generic fallback\n  const selected_prompt = prompts[key] || generic_fallback_prompt;\n\n  return {\n    json: {\n      ...j,\n      prompt_profile_key: key,\n      prompt_profile_name: name,\n      selected_prompt,\n      extraction_system_message: selected_prompt,\n    },\n    binary: item.binary\n  };\n});\n"
+      },
+      "id": "e17cf63f-cc33-4bf2-825a-71215eb98a7b",
+      "name": "Manufacturer Prompt Library",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        97104,
+        55648
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.map((item, idx) => {\n  const j = item.json || {};\n  const ai = j.output || j.data || j || {};\n  const aiManufacturer = ai.manufacturer || ai.manufacturerName || ai.name || '';\n\n  const normalize = (s) => String(s || '')\n    .toUpperCase()\n    .replace(/[^A-Z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  const text = normalize(aiManufacturer);\n\n  const entries = [\n    { key: 'NUCOR_STEEL_BERKELEY', name: 'Nucor Steel - Berkeley', needles: ['NUCOR STEEL BERKELEY', 'NUCOR BERKELEY'] },\n    { key: 'CLEVELAND_CLIFFS_PLATE_LLC', name: 'Cleveland-Cliffs Plate LLC', needles: ['CLEVELAND CLIFFS PLATE LLC', 'CLEVELAND CLIFFS PLATE', 'CLEVELAND CLIFF PLATE', 'CLEVELAND CLIFFS'] },\n    { key: 'NORTH_AMERICA_STAINLESS_CANADA_INC', name: 'North America Stainless Canada Inc', needles: ['NORTH AMERICA STAINLESS CANADA INC', 'NORTH AMERICA STAINLESS CANADA'] },\n    { key: 'NUCOR_STEEL_NORFOLK', name: 'Nucor Steel - Norfolk', needles: ['NUCOR STEEL NORFOLK', 'NUCOR STEEL NOR'] },\n    { key: 'NELSON_STEEL_COMPANY', name: 'Nelson Steel Company', needles: ['NELSON STEEL COMPANY', 'NELSEN STEEL', 'NELSON STEEL'] },\n    { key: 'WUYANG_IRON_AND_STEEL', name: 'Wuyang Iron and Steel Co. Ltd', needles: ['WUYANG IRON AND STEEL CO LTD', 'WUYANG IRON AND STEEL', 'WUYANG IRON'] },\n    { key: 'KOCAER_CELIK_SAN_VE_TIC_AS', name: 'Kocaer Celik San ve Tic AS', needles: ['KOCAER CELIK SAN VE TIC AS', 'KOCAER CELIK SAN'] },\n    { key: 'NOVASCO', name: 'Novasco', needles: ['NOVASCO'] },\n    { key: 'DEMIR_CELIK', name: 'Demir Celik', needles: ['DEMIR CELIK', 'DEMIR CEL IK'] },\n    { key: 'GAUTIER_STEEL', name: 'Gautier Steel', needles: ['GAUTIER STEEL'] },\n    { key: 'ALGOMA', name: 'Algoma', needles: ['ALGOMA'] },\n    { key: 'ILSENBURGER', name: 'Ilsenburger', needles: ['ILSENBURGER'] },\n    { key: 'INDUSTEEL', name: 'Industeel', needles: ['INDUSTEEL'] },\n    { key: 'ATLANTIC_TUBE', name: 'Atlantic Tube', needles: ['ATLANTIC TUBE'] },\n    { key: 'LEECOL', name: 'Leecol', needles: ['LEECO', 'LEECOL'] },\n    { key: 'CLEVELAND_CLIFF', name: 'Cleveland Cliff', needles: ['CLEVELAND CLIFF'] },\n    { key: 'NOVA_TUBE', name: 'Nova Tube', needles: ['NOVA TUBE'] },\n    { key: 'STEEL_DYNAMICS', name: 'Steel Dynamics', needles: ['STEEL DYNAMICS'] },\n    { key: 'CHINA_STEEL', name: 'China Steel', needles: ['CHINA STEEL'] },\n    { key: 'NIAGARA_LASALLE', name: 'Niagara LaSalle', needles: ['NIAGARA LASALLE', 'NIAGARA LA SALLE'] },\n    { key: 'NUCOR_STEEL', name: 'Nucor Steel', needles: ['NUCOR STEEL'] },\n    { key: 'SWVA_KENTUCKY', name: 'SWVA Kentucky', needles: ['SWVA KENTUCKY'] },\n    { key: 'THE_STEEL_SUPPLY', name: 'The Steel Supply', needles: ['THE STEEL SUPPLY'] },\n    { key: 'TUBE_INVESTMENTS', name: 'Tube Investments', needles: ['TUBE INVESTMENTS'] },\n    { key: 'ZHEJIANG_MINGHE', name: 'Zhejiang Minghe', needles: ['ZHEJIANG MINGHE'] },\n    { key: 'AMNS_CALVERT', name: 'AM/NS Calvert', needles: ['AM NS CALVERT', 'AMNS CALVERT'] },\n    { key: 'GERDAU', name: 'Gerdau', needles: ['GERDAU'] },\n    { key: 'AECELORMITTAL', name: 'AecelorMittal', needles: ['AECELORMITTAL', 'ARCELORMITTAL'] },\n    { key: 'SWVA_INC', name: 'SWVA, Inc', needles: ['SWVA INC', 'SWVA, INC', 'SWVA INC.'] },\n    { key: 'SSAB', name: 'SSAB', needles: ['SSAB'] },\n    { key: 'WELDED_TUBE', name: 'Welded Tube', needles: ['WELDED TUBE'] },\n    { key: 'STEEL_WAREHOUSE', name: 'Steel Warehouse', needles: ['STEEL WAREHOUSE'] },\n    { key: 'ALLIANCE_TUBULAR', name: 'Alliance Tubular', needles: ['ALLIANCE TUBULAR'] },\n    { key: 'AMERICAN_HEAVY', name: 'American Heavy', needles: ['AMERICAN HEAVY'] },\n    { key: 'MARUCHI_LEAVITT', name: 'Maruchi Leavitt', needles: ['MARUCHI LEAVITT'] },\n    { key: 'JADE_STERLING', name: 'Jade Sterling', needles: ['JADE STERLING'] },\n    { key: 'B_T_STEEL', name: 'B&T Steel', needles: ['B T STEEL', 'B&T STEEL'] },\n    { key: 'EVRAZ', name: 'EVRAZ', needles: ['EVRAZ'] },\n    { key: 'ATLAS_TUBE', name: 'Atlas Tube', needles: ['ATLAS TUBE'] },\n    { key: 'ACIER_FATI', name: 'Acier Fati', needles: ['ACIER FATI'] },\n    { key: 'ALTON_STEEL', name: 'Alton Steel', needles: ['ALTON STEEL'] },\n    { key: 'NLMK', name: 'NLMK', needles: ['NLMK'] },\n    { key: 'BULL_MOOSE', name: 'Bull Moose', needles: ['BULL MOOSE'] },\n    { key: 'VOESTALPINE_STAHI', name: 'Voestalpine Stahi', needles: ['VOESTALPINE STAHI', 'VOESTALPINE STAHL'] },\n    { key: 'JANCO_STEEL', name: 'Janco Steel', needles: ['JANCO STEEL','JANCO_STEEL'] },{ \n  key: 'CHAPEL_STEEL', \n  name: 'Chapel Steel', \n  needles: ['CHAPEL STEEL', 'CHAPEL_STEEL'] \n},\n    { key: 'NORTH_AMERICAN', name: 'North American', needles: ['NORTH AMERICAN'] },\n  ];\n\n  let found = null;\n  for (const e of entries) {\n    const hit = e.needles.some(n => text.includes(normalize(n)));\n    if (hit) { found = e; break; }\n  }\n\n  return {\n    json: {\n      ...j,\n      manufacturer_key: found ? found.key : '',\n      manufacturer_name: found ? found.name : '',\n      manufacturer_hint: found ? found.name : '',\n      manufacturer_source: found ? 'ai' : 'none',\n      manufacturer_match_text: found ? found.needles.find(n => text.includes(normalize(n))) || '' : '',\n    },\n    binary: item.binary\n  };\n});\n"
+      },
+      "id": "28730f22-a1f9-45bf-8530-a77e5ed46624",
+      "name": "Map AI Manufacturer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96816,
+        55632
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const auth = $items(\"Auth to Odoo1\")[0]?.json || {};\n  // Keep payload fields authoritative (db_name, odoo_url, etc.)\n  return { json: { ...auth, ...item.json } };\n});"
+      },
+      "id": "c81123cb-a613-4ab2-8ceb-aa43f397fb99",
+      "name": "Attach Auth + Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96128,
+        57120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.flatMap(item => {\n  const j = item.json || {};\n  const heat = (j.heat_number || '').toString().trim();\n  const batch = (j.batch_number || '').toString().trim();\n  const mtrId = (j.mtr_id || '').toString().trim();\n\n  if (!batch && !heat) {\n    // Skip records without the primary identifier\n    j.validation_warning = 'Missing batch_number';\n    return [];\n  }\n\n  if (batch) {\n    j.batch_number = batch;\n  }\n\n  const badTokens = ['fewf', 'ferf', 'ref', 'fre'];\n  const lowered = JSON.stringify({\n    manufacturer: j.manufacturer,\n    grade: j.grade,\n    certificate_number: j.certificate_number,\n  }).toLowerCase();\n  if (badTokens.some(t => lowered.includes(t))) {\n    // Mark garbage but don't block\n    j.validation_warning = 'Garbage tokens detected';\n  }\n\n  return [{ json: j }];\n});\n"
+      },
+      "id": "9db20027-4c57-4ea4-bc05-1511c6aa1a44",
+      "name": "Validate MTR Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        95504,
+        57120
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.flatMap((item, idx) => {\n  const src = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook MTR Upload1')[idx]?.json || {};\n  const normalizeId = (v) => {\n    if (v === undefined || v === null) return '';\n    if (typeof v === 'number') return String(v);\n    const s = String(v).trim();\n    if (!s) return '';\n    const m = s.match(/\\d+/);\n    return m ? m[0] : s;\n  };\n  const baseMtrId = normalizeId(src.mtr_id || src.mtrId || original.mtr_id || original.mtrId || '');\n  const fileName = (src.file_name || src.source_file || original.file_name || original.source_file || '').toString().trim();\n    const parseMaybeJson = (v) => {\n    if (!v) return null;\n    if (typeof v === 'object') return v;\n    if (typeof v !== 'string') return null;\n    const s = v.trim();\n    try {\n      return JSON.parse(s);\n    } catch (_) {\n      const a = s.indexOf('{');\n      const b = s.lastIndexOf('}');\n      if (a >= 0 && b > a) {\n        try { return JSON.parse(s.slice(a, b + 1)); } catch (__) {}\n      }\n      return null;\n    }\n  };\n\n  const parsedOutput = parseMaybeJson(src.output);\n  const parsedText = parseMaybeJson(src.text);\n  const root =\n    (src.output && (src.output.certificateHeader || src.output.materialTestRecords)) ? src.output :\n    (src.certificateHeader || src.materialTestRecords) ? src :\n    (parsedOutput && parsedOutput.output && (parsedOutput.output.certificateHeader || parsedOutput.output.materialTestRecords)) ? parsedOutput.output :\n    (parsedOutput && (parsedOutput.certificateHeader || parsedOutput.materialTestRecords)) ? parsedOutput :\n    (parsedText && parsedText.output && (parsedText.output.certificateHeader || parsedText.output.materialTestRecords)) ? parsedText.output :\n    (parsedText && (parsedText.certificateHeader || parsedText.materialTestRecords)) ? parsedText :\n    (src.data && src.data.output && (src.data.output.certificateHeader || src.data.output.materialTestRecords)) ? src.data.output :\n    (src.data && (src.data.certificateHeader || src.data.materialTestRecords)) ? src.data :\n    src;\n\n  const records =\n    (Array.isArray(root.materialTestRecords) && root.materialTestRecords) ||\n    (Array.isArray(root.material_test_records) && root.material_test_records) ||\n    [];\n\n  const misc = root.miscellaneous || root.misc || {};\n  const hdr = root.certificateHeader || root.header || {};\n\n  const asStr = (v) => (v === undefined || v === null ? '' : String(v).trim());\n  const normalizeNumberString = (raw) => {\n    if (raw === undefined || raw === null) return '';\n    let s = String(raw).trim();\n    if (!s) return '';\n    if (s.includes(',') && !s.includes('.')) {\n      const m = s.match(/^\\d{1,3},\\d{1,6}$/);\n      if (m) s = s.replace(',', '.');\n      else s = s.replace(/,/g, '');\n    } else {\n      s = s.replace(/,/g, '');\n    }\n    return s;\n  };\n\n  const asNum = (v) => {\n    if (v === undefined || v === null || v === '') return null;\n    if (typeof v === 'number') return Number.isFinite(v) ? v : null;\n    const cleaned = normalizeNumberString(v);\n    if (!cleaned) return null;\n    const m = cleaned.match(/-?\\d+(?:\\.\\d+)?/);\n    return m ? Number(m[0]) : null;\n  };\n\n  const asChemNum = asNum;\n  const pick = (obj, keys) => {\n    for (const k of keys) {\n      if (obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') return obj[k];\n    }\n    return '';\n  };\n\n  const splitHeats = (h) => {\n    const s0 = String(h || '').trim();\n    if (s0 === '') return [''];\n    const s = s0.replace(/\\band\\b/gi, ',').replace(/[;\\/\\n&]+/g, ',');\n    const parts = s.split(',').map(p => p.trim()).filter(Boolean);\n    return parts.length ? parts : [s0];\n  };\n\n  const mapRec = (rec) => {\n    const chem = rec.chemicalComposition || rec.chemical || rec.chemistry || {};\n    const mech = rec.mechanicalProperties || rec.mechanical || {};\n    const phys = rec.physicalProperties || rec.physical || {};\n    const charpy = rec.charpyImpactTest || rec.charpy || {};\n    const heat = asStr(pick(rec, ['heatNumber', 'heat_number', 'heatNo', 'heat_no', 'heat', 'heat#', 'heatId', 'heat_id']));\n    const batch = asStr(pick(rec, ['batchNumber', 'batch_number', 'batchNo', 'batch_no', 'bundleNumber', 'bundleNo', 'bundle_no', 'bundle', 'tag', 'tagNumber', 'tag_no', 'tag#', 'lot', 'lotNumber', 'lot_no', 'coil', 'coilNumber', 'coil_no']));\n    const testNo = asStr(pick(rec, ['testNumber', 'test_number', 'testNo', 'test_no']));\n    const batchFinal = (!batch && testNo && /^DA\\d+/i.test(testNo)) ? testNo : batch;\n    return {\n      heat_number: heat,\n      batch_number: batchFinal,\n      piece_no: asStr(pick(rec, ['piece_no', 'pieceNo', 'piece_number', 'pieceCount', 'piece_count']) || pick(mech, ['piece_no', 'pieceNo', 'piece_number'])),\n      grade: asStr(pick(hdr, ['grade', 'materialGrade', 'material_grade', 'material', 'specification']) || pick(rec, ['grade', 'materialGrade', 'material_grade', 'material', 'specification']) || pick(misc, ['standard', 'specification', 'specifications'])),\n      manufacturer: asStr(pick(hdr, ['manufacturer', 'mill', 'supplier', 'issuedFrom', 'issued_from']) || src.manufacturer_hint || src.manufacturer_name || src.detected_manufacturer || ''),\n      certificate_number: asStr(pick(hdr, ['certificateNumber', 'certificate_number', 'certNumber', 'certNo', 'certificateNo', 'testReference', 'test_reference', 'reportNumber'])),\n      certificate_date: asStr(pick(hdr, ['certificateDate', 'certificate_date', 'date', 'issueDate', 'issuedDate', 'reportDate'])),\n      c: asChemNum(pick(chem, ['C', 'c'])),\n      mn: asChemNum(pick(chem, ['Mn', 'mn'])),\n      si: asChemNum(pick(chem, ['Si', 'si'])),\n      p: asChemNum(pick(chem, ['P', 'p'])),\n      s: asChemNum(pick(chem, ['S', 's'])),\n      b: asChemNum(pick(chem, ['B', 'b', 'boron', 'Boron'])),\n      v: asChemNum(pick(chem, ['V', 'v', 'vanadium', 'Vanadium'])),\n      nb: asChemNum(pick(chem, ['Nb', 'nb', 'niobium', 'Niobium'])),\n      ti: asChemNum(pick(chem, ['Ti', 'ti', 'titanium', 'Titanium'])),\n      al: asChemNum(pick(chem, ['Al', 'al', 'AL', 'A1', 'A1*', 'Al*', 'aluminum', 'aluminium'])),\n      ca: asChemNum(pick(chem, ['Ca', 'ca', 'calcium'])),\n      zr: asChemNum(pick(chem, ['Zr', 'zr', 'zirconium'])),\n      zn: asChemNum(pick(chem, ['Zn', 'zn', 'zinc'])),\n      sn: asChemNum(pick(chem, ['Sn', 'sn', 'tin'])),\n      cu: asChemNum(pick(chem, ['Cu', 'cu'])),\n      ni: asChemNum(pick(chem, ['Ni', 'ni'])),\n      cr: asChemNum(pick(chem, ['Cr', 'cr'])),\n      mo: asChemNum(pick(chem, ['Mo', 'mo'])),\n      n: asChemNum(pick(chem, ['N', 'n'])),\n      yield_strength: asNum(pick(mech, ['yieldStrength', 'yield_strength'])),\n      tensile_strength: asNum(pick(mech, ['tensileStrength', 'tensile_strength'])),\n      elongation: asNum(pick(mech, ['elongation'])),\n      reduction_area: asNum(pick(mech, ['reductionArea', 'reduction_area'])),\n      hardness: asNum(pick(mech, ['hardness'])),\n      thickness: asNum(pick(mech, ['thickness', 'thickness_mm', 'plate_thickness']) || pick(phys, ['thickness', 'coatingThickness', 'coating_thickness'])),\n      impact_charpy: asNum(pick(mech, ['impactCharpy', 'impact_charpy', 'impactCharpyAverage', 'impact_charpy_average']) || pick(charpy, ['impactCharpy', 'impact_charpy', 'average']) || pick(mech, ['impact_average', 'impactAverage']) || pick(charpy, ['impact_average'])),\n      plate_dimension: asStr(pick(mech, ['plateDimension', 'plate_dimension', 'plate dimension', 'Plate dimension', 'Plate_dimension', 'plate_dimensions', 'dimensions', 'dimension']) || pick(phys, ['plateDimension', 'plate_dimension', 'dimensions', 'dimension', 'size'])),\n      direction: asStr(pick(mech, ['direction', 'dir', 'Dir', 'testDirection', 'test_direction']) || pick(charpy, ['direction', 'dir']) || pick(rec, ['direction', 'dir'])),\n      impact_test_temp: asNum(pick(mech, ['impact_test_temp', 'impactTestTemp', 'temperature', 'testTemperature']) || pick(charpy, ['impact_test_temp', 'impactTestTemp', 'testTemperature', 'temperature']) || pick(rec, ['impact_test_temp', 'impactTestTemp'])),\n      impact_coupon_size: asStr(pick(mech, ['impact_coupon_size', 'impactCouponSize', 'testSize', 'size', 'specimenSize']) || pick(charpy, ['impact_coupon_size', 'impactCouponSize', 'testSize', 'size', 'specimenSize']) || pick(phys, ['impact_coupon_size'])),\n      impact_specimen_1: asNum(pick(mech, ['impact_specimen_1', 'impactSpecimen1', 'specimen1', 'impact1', 'e1', 'energy1', 'result1']) || pick(charpy, ['impact_specimen_1', 'impactSpecimen1', 'specimen1', 'impact1', 'e1', 'energy1', 'result1'])),\n      impact_specimen_2: asNum(pick(mech, ['impact_specimen_2', 'impactSpecimen2', 'specimen2', 'impact2', 'e2', 'energy2', 'result2']) || pick(charpy, ['impact_specimen_2', 'impactSpecimen2', 'specimen2', 'impact2', 'e2', 'energy2', 'result2'])),\n      impact_specimen_3: asNum(pick(mech, ['impact_specimen_3', 'impactSpecimen3', 'specimen3', 'impact3', 'e3', 'energy3', 'result3']) || pick(charpy, ['impact_specimen_3', 'impactSpecimen3', 'specimen3', 'impact3', 'e3', 'energy3', 'result3'])),\n      impact_average: asNum(pick(mech, ['impact_average', 'impactAverage', 'impactCharpyAverage', 'impact_charpy_average']) || pick(charpy, ['impact_average', 'impactAverage', 'average']) || pick(rec, ['impact_average', 'impactAverage'])),\n      country_of_melt: asStr(pick(misc, ['countryOfMeltPour', 'country_of_melt', 'meltCountry', 'countryOfMelt'])),\n      country_of_manufacture: asStr(pick(misc, ['countryOfManufacture', 'country_of_manufacture', 'countryOfOrigin', 'origin', 'manufacturedIn', 'madeIn']) || ''),\n    };\n  };\n\n  const baseRecords = records.length ? records : [];\n  if (!baseRecords.length) return [];\n\n  const mappedRecords = baseRecords.map(mapRec);\n  const expandedRecords = mappedRecords.flatMap((r) => {\n    const heats = splitHeats(r.heat_number);\n    return heats.length <= 1 ? [r] : heats.map(h => ({ ...r, heat_number: h }));\n  });\n\n  const mergedMap = new Map();\n  for (const r of expandedRecords) {\n    const heatKey = (r.heat_number || '').toString().trim();\n    const batchKey = (r.batch_number || '').toString().trim();\n    const key = [heatKey, batchKey || heatKey].join('|');\n    if (!heatKey) continue;\n    if (!mergedMap.has(key)) mergedMap.set(key, { ...r, batch_number: batchKey || r.batch_number || '' });\n  }\n  const mergedRecordsFinal = Array.from(mergedMap.values());\n\n  if (baseMtrId) {\n    return mergedRecordsFinal.map((r, idx) => ({\n      json: {\n        ...src,\n        file_name: fileName,\n        ...r,\n        heat_number: (r.heat_number || src.heat_number || '').toString().trim(),\n        mtr_id: idx === 0 ? baseMtrId : '',\n        force_create: idx > 0,\n      },\n    }));\n  }\n\n  return mergedRecordsFinal\n    .filter(r => (r.heat_number || '').toString().trim() !== '')\n    .map((r, idx) => ({\n      json: {\n        ...src,\n        file_name: fileName,\n        ...r,\n        heat_number: (r.heat_number || src.heat_number || '').toString().trim(),\n        mtr_id: idx === 0 ? (baseMtrId || '') : '',\n        force_create: idx > 0,\n      },\n    }));\n});\n"
+      },
+      "id": "b4b9166d-7ec7-4d48-a856-a17bb77ff20b",
+      "name": "Normalize For Odoo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        95120,
+        57120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.rpc_url}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.upsert_body}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "5fbcb5c1-2d56-4a34-8787-e8d02857b474",
+      "name": "Upsert MTR in Odoo1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        96480,
+        57360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nreturn items.map((item, idx) => {\n  const j = item.json;\n  const source = $items('Normalize For Odoo')[idx]?.json || {};\n  const config = $items('Set Odoo + MTR Payload1')[idx]?.json || {};\n  const uid = j.result;\n  const dbName = (config.db_name || j.db_name || j.database || source.db_name || source.database || 'brannon').toString().trim();\n  if (!dbName) throw new Error('Missing database/db_name for Odoo upsert');\n  if (!uid) throw new Error(`Odoo authentication failed. uid was: ${uid}`);\n\n  const batch = (source.batch_number || config.batch_number || j.batch_number || '').toString().trim();\n  const heat = (source.heat_number || config.heat_number || j.heat_number || '').toString().trim();\n  if (!batch && !heat) {\n    throw new Error(`Missing batch_number before upsert. Keys: ${Object.keys(source).join(', ')}`);\n  }\n\n  const fileName = (source.file_name || config.file_name || j.file_name || source.source_file || config.source_file || j.source_file || '').toString().trim();\n    const rawUrl = (config.odoo_url || source.odoo_url || j.odoo_url || '').toString().trim();\n  const baseUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;\n  if (!baseUrl) throw new Error('Missing Odoo URL before upsert');\n\n  const payload = {\n    mtr_id: source.mtr_id || config.mtr_id || j.mtr_id || '',\n    heat_number: heat,\n    batch_number: batch || heat,\n    piece_no: source.piece_no || config.piece_no || j.piece_no || source.pieceCount || config.pieceCount || j.pieceCount || '',\n    force_create: !!(source.force_create || config.force_create || j.force_create),\n    grade: source.grade || config.grade || j.grade || '',\n    manufacturer: source.manufacturer || config.manufacturer || j.manufacturer || '',\n    certificate_number: source.certificate_number || config.certificate_number || j.certificate_number || '',\n    certificate_date: source.certificate_date || config.certificate_date || j.certificate_date || '',\n    c: source.c || config.c || j.c,\n    mn: source.mn || config.mn || j.mn,\n    si: source.si || config.si || j.si,\n    p: source.p || config.p || j.p,\n    s: source.s || config.s || j.s,\n    b: source.b || config.b || j.b,\n    v: source.v || config.v || j.v,\n    nb: source.nb || config.nb || j.nb,\n    ti: source.ti || config.ti || j.ti,\n    al: source.al || config.al || j.al,\n    ca: source.ca || config.ca || j.ca,\n    zr: source.zr || config.zr || j.zr,\n    zn: source.zn || config.zn || j.zn,\n    sn: source.sn || config.sn || j.sn,\n    cu: source.cu || config.cu || j.cu,\n    ni: source.ni || config.ni || j.ni,\n    cr: source.cr || config.cr || j.cr,\n    mo: source.mo || config.mo || j.mo,\n    n: source.n || config.n || j.n,\n    yield_strength: source.yield_strength || config.yield_strength || j.yield_strength,\n    tensile_strength: source.tensile_strength || config.tensile_strength || j.tensile_strength,\n    elongation: source.elongation || config.elongation || j.elongation,\n    reduction_area: source.reduction_area || config.reduction_area || j.reduction_area,\n    hardness: source.hardness || config.hardness || j.hardness,\n    thickness: source.thickness || config.thickness || j.thickness,\n    impact_charpy: source.impact_charpy || config.impact_charpy || j.impact_charpy,\n    plate_dimension: source.plate_dimension || config.plate_dimension || j.plate_dimension || '',\n    direction: source.direction || config.direction || j.direction || '',\n    impact_test_temp: source.impact_test_temp || config.impact_test_temp || j.impact_test_temp,\n    impact_coupon_size: source.impact_coupon_size || config.impact_coupon_size || j.impact_coupon_size || '',\n    impact_specimen_1: source.impact_specimen_1 || config.impact_specimen_1 || j.impact_specimen_1,\n    impact_specimen_2: source.impact_specimen_2 || config.impact_specimen_2 || j.impact_specimen_2,\n    impact_specimen_3: source.impact_specimen_3 || config.impact_specimen_3 || j.impact_specimen_3,\n    impact_average: source.impact_average || config.impact_average || j.impact_average,\n    country_of_melt: source.country_of_melt || config.country_of_melt || j.country_of_melt || '',\n    country_of_manufacture: source.country_of_manufacture || config.country_of_manufacture || j.country_of_manufacture || '',\n    file_name: fileName,\n  };\n\n  return {\n    json: {\n      rpc_url: `${baseUrl}/jsonrpc`,\n      upsert_body: {\n        jsonrpc: '2.0',\n        method: 'call',\n        params: {\n          service: 'object',\n          method: 'execute_kw',\n          args: [\n            dbName,\n            uid,\n            config.odoo_password || source.odoo_password || j.odoo_password,\n            'mtr.data',\n            'upsert_from_payload',\n            [payload],\n          ],\n        },\n        id: 2,\n      },\n    },\n  };\n});\n"
+      },
+      "id": "67614538-55bd-4905-895e-57bff977145a",
+      "name": "Build Upsert Request1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96384,
+        57120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.rpc_url}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.auth_body}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "0babe39e-5218-4c40-8cf1-5d5445d833bb",
+      "name": "Auth to Odoo1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        95840,
+        56880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json;\n  const dbName = (j.db_name || j.database || '').toString().trim();\n  if (!dbName) throw new Error('Missing database/db_name for Odoo auth');\n  const rawUrl = (j.odoo_url || '').toString().trim();\n  const baseUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;\n  return {\n    json: {\n      ...j,\n      db_name: dbName,\n      rpc_url: `${baseUrl}/jsonrpc`,\n      auth_body: {\n        jsonrpc: '2.0',\n        method: 'call',\n        params: {\n          service: 'common',\n          method: 'authenticate',\n          args: [dbName, j.odoo_login, j.odoo_password, {}],\n        },\n        id: 1,\n      },\n    },\n  };\n});"
+      },
+      "id": "0f230f4e-ac10-4d4b-bce4-172229743311",
+      "name": "Build Auth Request1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        95632,
+        56880
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "mtr_id",
+              "value": "={{ $json.mtr_id }}"
+            },
+            {
+              "name": "odoo_url",
+              "value": "http://host.docker.internal:8069"
+            },
+            {
+              "name": "db_name",
+              "value": "tazeem"
+            },
+            {
+              "name": "odoo_login",
+              "value": "admin"
+            },
+            {
+              "name": "odoo_password",
+              "value": "admin"
+            },
+            {
+              "name": "heat_number",
+              "value": "={{ $json.heat_number }}"
+            },
+            {
+              "name": "batch_number",
+              "value": "={{ ($json.batch_number || \"\").toString() }}"
+            },
+            {
+              "name": "piece_no",
+              "value": "={{ ($json.piece_no || $json.pieceCount || \"\").toString() }}"
+            },
+            {
+              "name": "grade",
+              "value": "={{ $json.grade }}"
+            },
+            {
+              "name": "manufacturer",
+              "value": "={{ $json.manufacturer }}"
+            },
+            {
+              "name": "certificate_number",
+              "value": "={{ $json.certificate_number }}"
+            },
+            {
+              "name": "file_name",
+              "value": "={{ $json.file_name || \"\" }}"
+            },
+            {
+              "name": "certificate_date",
+              "value": "={{ $json.certificate_date }}"
+            },
+            {
+              "name": "country_of_melt",
+              "value": "={{ $json.country_of_melt }}"
+            },
+            {
+              "name": "country_of_manufacture",
+              "value": "={{ $json.country_of_manufacture }}"
+            },
+            {
+              "name": "plate_dimension",
+              "value": "={{ $json.plate_dimension || \"\" }}"
+            },
+            {
+              "name": "direction",
+              "value": "={{ $json.direction || \"\" }}"
+            },
+            {
+              "name": "impact_coupon_size",
+              "value": "={{ $json.impact_coupon_size || \"\" }}"
+            },
+            {
+              "name": "impact_charpy",
+              "value": "={{ $json.impact_charpy }}"
+            },
+            {
+              "name": "impact_test_temp",
+              "value": "={{ $json.impact_test_temp }}"
+            },
+            {
+              "name": "impact_specimen_1",
+              "value": "={{ $json.impact_specimen_1 }}"
+            },
+            {
+              "name": "impact_specimen_2",
+              "value": "={{ $json.impact_specimen_2 }}"
+            },
+            {
+              "name": "impact_specimen_3",
+              "value": "={{ $json.impact_specimen_3 }}"
+            },
+            {
+              "name": "impact_average",
+              "value": "={{ $json.impact_average }}"
+            }
+          ],
+          "number": [
+            {
+              "name": "force_create",
+              "value": "={{ $json.force_create ? 1 : 0 }}"
+            },
+            {
+              "name": "c",
+              "value": "={{ $json.c }}"
+            },
+            {
+              "name": "mn",
+              "value": "={{ $json.mn }}"
+            },
+            {
+              "name": "si",
+              "value": "={{ $json.si }}"
+            },
+            {
+              "name": "p",
+              "value": "={{ $json.p }}"
+            },
+            {
+              "name": "s",
+              "value": "={{ $json.s }}"
+            },
+            {
+              "name": "b",
+              "value": "={{ $json.b }}"
+            },
+            {
+              "name": "v",
+              "value": "={{ $json.v }}"
+            },
+            {
+              "name": "nb",
+              "value": "={{ $json.nb }}"
+            },
+            {
+              "name": "ti",
+              "value": "={{ $json.ti }}"
+            },
+            {
+              "name": "al",
+              "value": "={{ $json.al }}"
+            },
+            {
+              "name": "cu",
+              "value": "={{ $json.cu }}"
+            },
+            {
+              "name": "ni",
+              "value": "={{ $json.ni }}"
+            },
+            {
+              "name": "cr",
+              "value": "={{ $json.cr }}"
+            },
+            {
+              "name": "mo",
+              "value": "={{ $json.mo }}"
+            },
+            {
+              "name": "yield_strength",
+              "value": "={{ $json.yield_strength }}"
+            },
+            {
+              "name": "tensile_strength",
+              "value": "={{ $json.tensile_strength }}"
+            },
+            {
+              "name": "elongation",
+              "value": "={{ $json.elongation }}"
+            },
+            {
+              "name": "reduction_area",
+              "value": "={{ $json.reduction_area }}"
+            },
+            {
+              "name": "hardness",
+              "value": "={{ $json.hardness }}"
+            },
+            {
+              "name": "thickness",
+              "value": "={{ $json.thickness }}"
+            },
+            {
+              "name": "impact_charpy",
+              "value": "={{ $json.impact_charpy }}"
+            },
+            {
+              "name": "impact_test_temp",
+              "value": "={{ $json.impact_test_temp }}"
+            },
+            {
+              "name": "impact_specimen_1",
+              "value": "={{ $json.impact_specimen_1 }}"
+            },
+            {
+              "name": "impact_specimen_2",
+              "value": "={{ $json.impact_specimen_2 }}"
+            },
+            {
+              "name": "impact_specimen_3",
+              "value": "={{ $json.impact_specimen_3 }}"
+            },
+            {
+              "name": "impact_average",
+              "value": "={{ $json.impact_average }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c7d27973-e27e-4ec7-861a-594de386c121",
+      "name": "Set Odoo + MTR Payload1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        95312,
+        57120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mtr-local",
+        "options": {}
+      },
+      "id": "c4bf647c-920e-4f61-80f5-a2b20d05b45a",
+      "name": "Webhook MTR Upload1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        94896,
+        55328
+      ],
+      "webhookId": "450fef97-d8f4-4483-a3f6-c3750556a89e"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const root = item.json || {};\n  const body = root.body || {};\n  const data = root.data || {};\n\n  const fileBase64 =\n    root.file_content_base64 ||\n    body.file_content_base64 ||\n    data.file_content_base64 ||\n    root.file_data ||\n    body.file_data ||\n    data.file_data;\n\n  const mtrId =\n    root.mtr_id ||\n    body.mtr_id ||\n    data.mtr_id ||\n    root.mtrId ||\n    body.mtrId ||\n    data.mtrId;\n\n  const normalizeId = (v) => {\n    if (v === undefined || v === null) return '';\n    if (typeof v === 'number') return String(v);\n    const s = String(v).trim();\n    if (!s) return '';\n    const m = s.match(/\\d+/);\n    return m ? m[0] : s;\n  };\n\n  const fileName =\n    root.file_name ||\n    body.file_name ||\n    data.file_name ||\n    'MTR.pdf';\n\n  if (!fileBase64) {\n    throw new Error(`Webhook payload missing file_content_base64. Keys: ${Object.keys(root).join(', ')}`);\n  }\n\n  // Simple deterministic hash (no crypto required)\n  const hashDjb2 = (str) => {\n    let h = 5381;\n    for (let i = 0; i < str.length; i++) {\n      h = ((h << 5) + h) + str.charCodeAt(i);\n      h |= 0;\n    }\n    return (h >>> 0).toString(16);\n  };\n\n  const pdfFingerprint = hashDjb2(fileBase64);\n\n  return {\n    json: {\n      ...root,\n      ...(Object.keys(body).length ? body : {}),\n      ...(Object.keys(data).length ? data : {}),\n      file_name: fileName,\n      file_content_base64: fileBase64,\n      pdf_fingerprint: pdfFingerprint,\n      mtr_id: normalizeId(mtrId),\n    },\n    binary: {\n      data0: {\n        data: fileBase64,\n        mimeType: 'application/pdf',\n        fileName,\n      },\n    },\n  };\n});\n"
+      },
+      "id": "d358e905-0cfc-4dd4-ba92-7102a5dd436b",
+      "name": "Read Binary File1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        95264,
+        55616
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Parse Claude Extract": {
+      "main": [
+        [
+          {
+            "node": "Extract Claude Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Extract MTR": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Claude Extract Request": {
+      "main": [
+        [
+          {
+            "node": "Claude Extract MTR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Manufacturer": {
+      "main": [
+        [
+          {
+            "node": "Map AI Manufacturer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Detect Manufacturer": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Manufacturer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Claude Manufacturer Request": {
+      "main": [
+        [
+          {
+            "node": "Claude Detect Manufacturer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Manufacturer PDF": {
+      "main": [
+        [
+          {
+            "node": "Prepare Claude Manufacturer Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Prompt Exists": {
+      "main": [
+        [
+          {
+            "node": "Prepare Claude Extract Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manufacturer Prompt Library": {
+      "main": [
+        [
+          {
+            "node": "Validate Prompt Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map AI Manufacturer": {
+      "main": [
+        [
+          {
+            "node": "Manufacturer Prompt Library",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Claude Output": {
+      "main": [
+        [
+          {
+            "node": "Normalize For Odoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate MTR Payload": {
+      "main": [
+        [
+          {
+            "node": "Build Auth Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Attach Auth + Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize For Odoo": {
+      "main": [
+        [
+          {
+            "node": "Set Odoo + MTR Payload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Auth + Payload": {
+      "main": [
+        [
+          {
+            "node": "Build Upsert Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Upsert Request1": {
+      "main": [
+        [
+          {
+            "node": "Upsert MTR in Odoo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Auth Request1": {
+      "main": [
+        [
+          {
+            "node": "Auth to Odoo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Odoo + MTR Payload1": {
+      "main": [
+        [
+          {
+            "node": "Validate MTR Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook MTR Upload1": {
+      "main": [
+        [
+          {
+            "node": "Read Binary File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Binary File1": {
+      "main": [
+        [
+          {
+            "node": "Set Manufacturer PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth to Odoo1": {
+      "main": [
+        [
+          {
+            "node": "Attach Auth + Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a1ebbd05-d364-46bd-a805-e0b3c836a88b",
+  "meta": {
+    "instanceId": "0c1f8a2d7f50d52b3fb7ef282a2e9f1c5dcfbc4f6aad1fcd918d87dfdd4a791b"
+  },
+  "id": "BtG2d0A71r0lWJM1",
+  "tags": []
+}

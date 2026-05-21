@@ -1,0 +1,731 @@
+<odoo>
+  <data>
+    <record model="ir.ui.view" id="view_mtr_data_form">
+      <field name="name">mtr.data.form</field>
+      <field name="model">mtr.data</field>
+      <field name="arch" type="xml">
+        <form string="MTR Data">
+          <header>
+            <button name="action_resend_to_n8n" type="object" string="Resend to n8n"
+                    class="btn-secondary"
+                    attrs="{'invisible': [('n8n_status', '=', 'processed')]}"/>
+          </header>
+          <sheet>
+            <group>
+              <group>
+                <field name="batch_number"/>
+                <field name="heat_number"/>
+                <field name="piece_no"/>
+                <field name="grade"/>
+                <field name="manufacturer"/>
+                <field name="certificate_number"/>
+                <field name="certificate_date"/>
+              </group>
+              <group>
+                <field name="country_of_melt"/>
+                <field name="country_of_manufacture"/>
+                <field name="uploaded_at"/>
+                <field name="n8n_status" invisible="1"/>
+              </group>
+            </group>
+            <notebook>
+              <page string="Chemistry">
+                <group>
+                  <field name="c_element"/>
+                  <field name="mn_element"/>
+                  <field name="si_element"/>
+                  <field name="p_element"/>
+                  <field name="s_element"/>
+                  <field name="b_element"/>
+                  <field name="v_element"/>
+                  <field name="nb_element"/>
+                  <field name="ti_element"/>
+                  <field name="al_element"/>
+                  <field name="cu_element"/>
+                  <field name="ni_element"/>
+                  <field name="cr_element"/>
+                  <field name="mo_element"/>
+                  <field name="ce" readonly="1"/>
+                </group>
+              </page>
+              <page string="Mechanical">
+                <group>
+                  <field name="yield_strength"/>
+                  <field name="tensile_strength"/>
+                  <field name="elongation"/>
+                  <field name="reduction_area"/>
+                  <field name="hardness"/>
+                  <field name="thickness"/>
+                  <field name="impact_charpy"/>
+                  <field name="plate_dimension"/>
+                  <field name="direction"/>
+                </group>
+              </page>
+              <page string="Impact">
+                <group>
+                  <field name="impact_test_temp"/>
+                  <field name="impact_coupon_size"/>
+                  <field name="impact_specimen_1"/>
+                  <field name="impact_specimen_2"/>
+                  <field name="impact_specimen_3"/>
+                  <field name="impact_average"/>
+                </group>
+              </page>
+            </notebook>
+          </sheet>
+          <div class="oe_chatter">
+            <field name="message_follower_ids" widget="mail_followers"/>
+            <field name="message_ids" widget="mail_thread"/>
+          </div>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_mtr_data_tree">
+      <field name="name">mtr.data.tree</field>
+      <field name="model">mtr.data</field>
+      <field name="arch" type="xml">
+        <tree import="false">
+          <field name="batch_number" optional="show"/>
+          <field name="heat_number" optional="show"/>
+          <field name="piece_no" optional="hide"/>
+          <field name="grade" optional="show"/>
+          <field name="manufacturer" optional="show"/>
+          <field name="certificate_number" optional="hide"/>
+          <field name="certificate_date" optional="show"/>
+          <field name="c_element" optional="hide"/>
+          <field name="mn_element" optional="hide"/>
+          <field name="si_element" optional="hide"/>
+          <field name="p_element" optional="hide"/>
+          <field name="s_element" optional="hide"/>
+          <field name="b_element" optional="hide"/>
+          <field name="v_element" optional="hide"/>
+          <field name="nb_element" optional="hide"/>
+          <field name="ti_element" optional="hide"/>
+          <field name="al_element" optional="hide"/>
+          <field name="cu_element" optional="hide"/>
+          <field name="ni_element" optional="hide"/>
+          <field name="cr_element" optional="hide"/>
+          <field name="mo_element" optional="hide"/>
+          <field name="ce" optional="hide"/>
+          <field name="yield_strength" optional="show"/>
+          <field name="tensile_strength" optional="show"/>
+          <field name="elongation" optional="hide"/>
+          <field name="reduction_area" optional="hide"/>
+          <field name="hardness" optional="hide"/>
+          <field name="thickness" optional="hide"/>
+          <field name="impact_charpy" optional="hide"/>
+          <field name="plate_dimension" optional="hide"/>
+          <field name="direction" optional="hide"/>
+          <field name="impact_test_temp" optional="hide"/>
+          <field name="impact_coupon_size" optional="hide"/>
+          <field name="impact_specimen_1" optional="hide"/>
+          <field name="impact_specimen_2" optional="hide"/>
+          <field name="impact_specimen_3" optional="hide"/>
+          <field name="impact_average" optional="hide"/>
+          <field name="country_of_melt" optional="hide"/>
+          <field name="country_of_manufacture" optional="hide"/>
+          <field name="uploaded_at" optional="hide"/>
+          <field name="n8n_status" optional="hide"/>
+          <field name="n8n_status_at" optional="hide"/>
+          <field name="n8n_status_log" optional="hide"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_inventory_record_tree">
+      <field name="name">inventory.record.tree</field>
+      <field name="model">inventory.record</field>
+      <field name="arch" type="xml">
+        <tree import="false">
+          <field name="lot_number"/>
+          <field name="heat_number"/>
+          <field name="slab_number"/>
+          <field name="grade"/>
+          <field name="dimensions"/>
+          <field name="weight"/>
+          <field name="posting_date"/>
+          <field name="location_code" optional="hide"/>
+          <field name="item_no" optional="hide"/>
+          <field name="description" optional="hide"/>
+          <field name="item_description" optional="hide"/>
+          <field name="variant_code" optional="hide"/>
+          <field name="wsi_variant_code" optional="hide"/>
+          <field name="unit_of_measure_code" optional="hide"/>
+          <field name="quantity" optional="hide"/>
+          <field name="inventory_by_location" optional="hide"/>
+          <field name="inventory" optional="hide"/>
+          <field name="remaining_quantity" optional="hide"/>
+          <field name="reserved_quantity" optional="hide"/>
+          <field name="invoiced_quantity" optional="hide"/>
+          <field name="qty_per_unit_of_measure" optional="hide"/>
+          <field name="expiration_date" optional="hide"/>
+          <field name="sales_amount_expected" optional="hide"/>
+          <field name="sales_amount_actual" optional="hide"/>
+          <field name="cost_amount_expected" optional="hide"/>
+          <field name="cost_amount_actual" optional="hide"/>
+          <field name="cost_amount_non_invtbl" optional="hide"/>
+          <field name="cost_amount_expected_acy" optional="hide"/>
+          <field name="cost_amount_actual_acy" optional="hide"/>
+          <field name="cost_amount_non_invtbl_acy" optional="hide"/>
+          <field name="unitcost_cwt" optional="hide"/>
+          <field name="document_no" optional="hide"/>
+          <field name="document_type" optional="hide"/>
+          <field name="document_line_no" optional="hide"/>
+          <field name="entry_type" optional="hide"/>
+          <field name="entry_no" optional="hide"/>
+          <field name="date" optional="hide"/>
+          <field name="order_type" optional="hide"/>
+          <field name="order_no" optional="hide"/>
+          <field name="order_line_no" optional="hide"/>
+          <field name="prod_order_comp_line_no" optional="hide"/>
+          <field name="origin_code" optional="hide"/>
+          <field name="country_of_melt" optional="hide"/>
+          <field name="country_of_manufacture" optional="hide"/>
+          <field name="source_type" optional="hide"/>
+          <field name="source_no" optional="hide"/>
+          <field name="source_description" optional="hide"/>
+          <field name="source_order_no" optional="hide"/>
+          <field name="source_file" optional="hide"/>
+          <field name="internal_bin" optional="hide"/>
+          <field name="package_no" optional="hide"/>
+          <field name="serial_no" optional="hide"/>
+          <field name="piece_no" optional="hide"/>
+          <field name="cutting_plan_no" optional="hide"/>
+          <field name="picked" optional="hide"/>
+          <field name="open_flag" optional="hide"/>
+          <field name="drop_shipment" optional="hide"/>
+          <field name="assemble_to_order" optional="hide"/>
+          <field name="shipped_qty_not_returned" optional="hide"/>
+          <field name="drawing" optional="hide"/>
+          <field name="revision" optional="hide"/>
+          <field name="laser_quality" optional="hide"/>
+          <field name="description_2" optional="hide"/>
+          <field name="additional_notes" optional="hide"/>
+          <field name="image_path" optional="hide"/>
+          <field name="project_no" optional="hide"/>
+          <field name="project_task_no" optional="hide"/>
+          <field name="return_reason_code" optional="hide"/>
+          <field name="yield_value" optional="hide"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_inventory_import_wizard">
+      <field name="name">Import Inventory</field>
+      <field name="res_model">inventory.import.wizard</field>
+      <field name="view_mode">form</field>
+      <field name="target">new</field>
+    </record>
+
+    <record model="ir.ui.view" id="view_inventory_record_form">
+      <field name="name">inventory.record.form</field>
+      <field name="model">inventory.record</field>
+      <field name="arch" type="xml">
+        <form string="Inventory Record">
+          <sheet>
+            <group>
+              <group>
+                <field name="lot_number"/>
+                <field name="heat_number"/>
+                <field name="slab_number"/>
+                <field name="grade"/>
+                <field name="dimensions"/>
+                <field name="weight"/>
+                <field name="posting_date"/>
+              </group>
+              <group>
+                <field name="location_code"/>
+                <field name="item_no"/>
+                <field name="description"/>
+                <field name="item_description"/>
+                <field name="variant_code"/>
+                <field name="wsi_variant_code"/>
+                <field name="unit_of_measure_code"/>
+                <field name="quantity"/>
+              </group>
+            </group>
+            <notebook>
+              <page string="Inventory">
+                <group>
+                  <field name="inventory_by_location"/>
+                  <field name="inventory"/>
+                  <field name="remaining_quantity"/>
+                  <field name="reserved_quantity"/>
+                  <field name="invoiced_quantity"/>
+                  <field name="qty_per_unit_of_measure"/>
+                  <field name="expiration_date"/>
+                </group>
+              </page>
+              <page string="Costs">
+                <group>
+                  <field name="sales_amount_expected"/>
+                  <field name="sales_amount_actual"/>
+                  <field name="cost_amount_expected"/>
+                  <field name="cost_amount_actual"/>
+                  <field name="cost_amount_non_invtbl"/>
+                  <field name="cost_amount_expected_acy"/>
+                  <field name="cost_amount_actual_acy"/>
+                  <field name="cost_amount_non_invtbl_acy"/>
+                  <field name="unitcost_cwt"/>
+                </group>
+              </page>
+              <page string="Document">
+                <group>
+                  <field name="document_no"/>
+                  <field name="document_type"/>
+                  <field name="document_line_no"/>
+                  <field name="entry_type"/>
+                  <field name="entry_no"/>
+                  <field name="date"/>
+                </group>
+                <group>
+                  <field name="order_type"/>
+                  <field name="order_no"/>
+                  <field name="order_line_no"/>
+                  <field name="prod_order_comp_line_no"/>
+                </group>
+              </page>
+              <page string="Traceability">
+                <group>
+                  <field name="origin_code"/>
+                  <field name="country_of_melt"/>
+                  <field name="country_of_manufacture"/>
+                  <field name="source_type"/>
+                  <field name="source_no"/>
+                  <field name="source_description"/>
+                  <field name="source_order_no"/>
+                  <field name="source_file"/>
+                </group>
+              </page>
+              <page string="Logistics">
+                <group>
+                  <field name="internal_bin"/>
+                  <field name="package_no"/>
+                  <field name="serial_no"/>
+                  <field name="piece_no"/>
+                  <field name="cutting_plan_no"/>
+                  <field name="picked"/>
+                  <field name="open_flag"/>
+                  <field name="drop_shipment"/>
+                  <field name="assemble_to_order"/>
+                  <field name="shipped_qty_not_returned"/>
+                </group>
+              </page>
+              <page string="Misc">
+                <group>
+                  <field name="drawing"/>
+                  <field name="revision"/>
+                  <field name="laser_quality"/>
+                  <field name="description_2"/>
+                  <field name="additional_notes"/>
+                  <field name="image_path"/>
+                  <field name="project_no"/>
+                  <field name="project_task_no"/>
+                  <field name="return_reason_code"/>
+                  <field name="yield_value"/>
+                </group>
+              </page>
+              <page string="Raw">
+                <group>
+                  <field name="raw_row_data" nolabel="1"/>
+                </group>
+              </page>
+            </notebook>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_inventory_import_wizard_form">
+      <field name="name">inventory.import.wizard.form</field>
+      <field name="model">inventory.import.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Import Inventory">
+          <group>
+            <field name="file_name"/>
+            <field name="file_data" filename="file_name"/>
+            <field name="delimiter"/>
+            <field name="has_header"/>
+            <field name="batch_size"/>
+          </group>
+          <group string="Header Mapping">
+            <field name="line_ids" nolabel="1">
+              <tree editable="bottom" create="false" delete="false">
+                <field name="source_header" readonly="1"/>
+                <field name="target_key"/>
+              </tree>
+            </field>
+          </group>
+          <footer>
+            <button string="Import" type="object" name="action_import" class="btn-primary"/>
+            <button string="Cancel" class="btn-secondary" special="cancel"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_mtr_pdf_upload_wizard_form">
+      <field name="name">mtr.pdf.upload.wizard.form</field>
+      <field name="model">mtr.pdf.upload.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Upload MTR Certificate">
+          <sheet>
+            <group>
+              <field name="file_name"/>
+              <field name="file_data" filename="file_name"/>
+            </group>
+          </sheet>
+          <footer>
+            <button string="Submit Certificate" type="object" name="action_send_to_n8n" class="btn-primary"/>
+            <button string="Cancel" class="btn-secondary" special="cancel"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_mtr_pdf_upload_multi_wizard_form">
+      <field name="name">mtr.pdf.upload.multi.wizard.form</field>
+      <field name="model">mtr.pdf.upload.multi.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Upload Multiple MTR Certificates">
+          <sheet>
+            <group>
+              <field name="attachment_ids" widget="many2many_binary" options="{'accept': '.pdf'}"/>
+            </group>
+          </sheet>
+          <footer>
+            <button string="Submit Certificates" type="object" name="action_send_to_n8n" class="btn-primary"/>
+            <button string="Cancel" class="btn-secondary" special="cancel"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.actions.server" id="action_refresh_join_report">
+      <field name="name">Refresh Join Report</field>
+      <field name="model_id" ref="model_mtr_inventory_join_report"/>
+      <field name="binding_model_id" ref="model_mtr_inventory_join_report"/>
+      <field name="binding_view_types">list</field>
+      <field name="state">code</field>
+      <field name="code">model.refresh_view()</field>
+    </record>
+
+    <record model="ir.ui.view" id="view_mtr_inventory_join_report_tree">
+      <field name="name">mtr.inventory.join.report.tree</field>
+      <field name="model">mtr.inventory.join.report</field>
+      <field name="arch" type="xml">
+        <tree create="false" edit="false" delete="false" default_order="join_priority asc,inv_posting_date desc,id desc">
+          <!-- Always-visible core fields -->
+          <field name="join_status" optional="show"/>
+          <field name="inv_heat_number" optional="show"/>
+          <field name="inv_slab_number" optional="show"/>
+          <field name="mtr_heat_number" optional="show"/>
+          <field name="mtr_batch_number" optional="show"/>
+          <field name="mtr_certificate_number" optional="show"/>
+          <!-- Everything else hidden — toggle via column chooser -->
+          <field name="mtr_thickness" optional="hide"/>
+          <field name="join_priority" optional="hide"/>
+          <field name="inv_entry_no" optional="hide"/>
+          <field name="inv_date" optional="hide"/>
+          <field name="inv_location_code" optional="hide"/>
+          <field name="inv_item_no" optional="hide"/>
+          <field name="inv_quantity" optional="hide"/>
+          <field name="inv_unit_of_measure_code" optional="hide"/>
+          <field name="inv_document_no" optional="hide"/>
+          <field name="inv_wsi_variant_code" optional="hide"/>
+          <field name="inv_dimensions" optional="hide"/>
+          <field name="inv_lot_number" optional="hide"/>
+          <field name="inv_internal_bin" optional="hide"/>
+          <field name="inv_additional_notes" optional="hide"/>
+          <field name="inv_cost_amount_actual" optional="hide"/>
+          <field name="inv_description_2" optional="hide"/>
+          <field name="inv_origin_code" optional="hide"/>
+          <field name="inv_picked" optional="hide"/>
+          <field name="inv_cutting_plan_no" optional="hide"/>
+          <field name="inv_image_path" optional="hide"/>
+          <field name="inv_entry_type" optional="hide"/>
+          <field name="inv_document_type" optional="hide"/>
+          <field name="inv_drawing" optional="hide"/>
+          <field name="inv_yield_value" optional="hide"/>
+          <field name="inv_document_line_no" optional="hide"/>
+          <field name="inv_revision" optional="hide"/>
+          <field name="inv_laser_quality" optional="hide"/>
+          <field name="inv_unitcost_cwt" optional="hide"/>
+          <field name="inv_piece_no" optional="hide"/>
+          <field name="inv_variant_code" optional="hide"/>
+          <field name="inv_description" optional="hide"/>
+          <field name="inv_return_reason_code" optional="hide"/>
+          <field name="inv_serial_no" optional="hide"/>
+          <field name="inv_package_no" optional="hide"/>
+          <field name="inv_invoiced_quantity" optional="hide"/>
+          <field name="inv_inventory_by_location" optional="hide"/>
+          <field name="inv_inventory" optional="hide"/>
+          <field name="inv_expiration_date" optional="hide"/>
+          <field name="inv_remaining_quantity" optional="hide"/>
+          <field name="inv_shipped_qty_not_returned" optional="hide"/>
+          <field name="inv_reserved_quantity" optional="hide"/>
+          <field name="inv_qty_per_unit_of_measure" optional="hide"/>
+          <field name="inv_sales_amount_expected" optional="hide"/>
+          <field name="inv_sales_amount_actual" optional="hide"/>
+          <field name="inv_cost_amount_expected" optional="hide"/>
+          <field name="inv_cost_amount_non_invtbl" optional="hide"/>
+          <field name="inv_item_description" optional="hide"/>
+          <field name="inv_cost_amount_expected_acy" optional="hide"/>
+          <field name="inv_cost_amount_actual_acy" optional="hide"/>
+          <field name="inv_completely_invoiced" optional="hide"/>
+          <field name="inv_cost_amount_non_invtbl_acy" optional="hide"/>
+          <field name="inv_assemble_to_order" optional="hide"/>
+          <field name="inv_drop_shipment" optional="hide"/>
+          <field name="inv_open_flag" optional="hide"/>
+          <field name="inv_order_type" optional="hide"/>
+          <field name="inv_order_no" optional="hide"/>
+          <field name="inv_order_line_no" optional="hide"/>
+          <field name="inv_prod_order_comp_line_no" optional="hide"/>
+          <field name="inv_project_no" optional="hide"/>
+          <field name="inv_project_task_no" optional="hide"/>
+          <field name="inv_source_type" optional="hide"/>
+          <field name="inv_source_no" optional="hide"/>
+          <field name="inv_source_description" optional="hide"/>
+          <field name="inv_source_order_no" optional="hide"/>
+          <field name="inv_grade" optional="hide"/>
+          <field name="inv_weight" optional="hide"/>
+          <field name="mtr_grade" optional="hide"/>
+          <field name="mtr_c" optional="hide"/>
+          <field name="mtr_mn" optional="hide"/>
+          <field name="mtr_ce" optional="hide"/>
+          <field name="mtr_si" optional="hide"/>
+          <field name="mtr_p" optional="hide"/>
+          <field name="mtr_s" optional="hide"/>
+          <field name="mtr_b" optional="hide"/>
+          <field name="mtr_v" optional="hide"/>
+          <field name="mtr_nb" optional="hide"/>
+          <field name="mtr_ti" optional="hide"/>
+          <field name="mtr_al" optional="hide"/>
+          <field name="mtr_cu" optional="hide"/>
+          <field name="mtr_ni" optional="hide"/>
+          <field name="mtr_cr" optional="hide"/>
+          <field name="mtr_mo" optional="hide"/>
+          <field name="mtr_yield_strength" optional="hide"/>
+          <field name="mtr_tensile_strength" optional="hide"/>
+          <field name="mtr_elongation" optional="hide"/>
+          <field name="mtr_reduction_area" optional="hide"/>
+          <field name="mtr_hardness" optional="hide"/>
+          <field name="mtr_impact_test_temp" optional="hide"/>
+          <field name="mtr_impact_coupon_size" optional="hide"/>
+          <field name="mtr_impact_specimen_1" optional="hide"/>
+          <field name="mtr_impact_specimen_2" optional="hide"/>
+          <field name="mtr_impact_specimen_3" optional="hide"/>
+          <field name="mtr_impact_average" optional="hide"/>
+          <field name="mtr_country_of_melt" optional="hide"/>
+          <field name="mtr_country_of_manufacture" optional="hide"/>
+          <field name="mtr_id" optional="hide"/>
+          <field name="mtr_piece_no" optional="hide"/>
+          <field name="mtr_manufacturer" optional="hide"/>
+          <field name="mtr_certificate_date" optional="hide"/>
+          <field name="mtr_uploaded_at" optional="hide"/>
+          <field name="inv_posting_date" optional="hide"/>
+          <field name="inv_country_of_melt" optional="hide"/>
+          <field name="inv_country_of_manufacture" optional="hide"/>
+          <field name="inv_source_file" optional="hide"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="view_mtr_inventory_join_report_form">
+      <field name="name">mtr.inventory.join.report.form</field>
+      <field name="model">mtr.inventory.join.report</field>
+      <field name="arch" type="xml">
+        <form string="MTR Inventory Join Report" create="false" edit="false" delete="false">
+          <sheet>
+            <group>
+              <group>
+                <field name="join_status"/>
+                <field name="inv_lot_number"/>
+                <field name="inv_heat_number"/>
+                <field name="inv_grade"/>
+              </group>
+              <group>
+                <field name="mtr_batch_number"/>
+                <field name="mtr_grade"/>
+                <field name="mtr_manufacturer"/>
+                <field name="mtr_uploaded_at"/>
+              </group>
+            </group>
+            <notebook>
+              <page string="Inventory">
+                <group>
+                  <field name="inv_entry_no"/>
+                  <field name="inv_date"/>
+                  <field name="inv_posting_date"/>
+                  <field name="inv_location_code"/>
+                  <field name="inv_item_no"/>
+                  <field name="inv_document_no"/>
+                  <field name="inv_document_type"/>
+                  <field name="inv_document_line_no"/>
+                  <field name="inv_entry_type"/>
+                  <field name="inv_wsi_variant_code"/>
+                  <field name="inv_description"/>
+                  <field name="inv_description_2"/>
+                  <field name="inv_item_description"/>
+                  <field name="inv_quantity"/>
+                  <field name="inv_weight"/>
+                  <field name="inv_unit_of_measure_code"/>
+                  <field name="inv_qty_per_unit_of_measure"/>
+                  <field name="inv_dimensions"/>
+                  <field name="inv_lot_number"/>
+                  <field name="inv_heat_number"/>
+                  <field name="inv_slab_number"/>
+                  <field name="inv_piece_no"/>
+                  <field name="inv_internal_bin"/>
+                  <field name="inv_additional_notes"/>
+                  <field name="inv_origin_code"/>
+                  <field name="inv_country_of_melt"/>
+                  <field name="inv_country_of_manufacture"/>
+                  <field name="inv_source_file"/>
+                  <field name="inv_source_type"/>
+                  <field name="inv_source_no"/>
+                  <field name="inv_source_description"/>
+                  <field name="inv_source_order_no"/>
+                  <field name="inv_order_type"/>
+                  <field name="inv_order_no"/>
+                  <field name="inv_order_line_no"/>
+                  <field name="inv_prod_order_comp_line_no"/>
+                  <field name="inv_project_no"/>
+                  <field name="inv_project_task_no"/>
+                  <field name="inv_revision"/>
+                  <field name="inv_drawing"/>
+                  <field name="inv_image_path"/>
+                  <field name="inv_laser_quality"/>
+                  <field name="inv_variant_code"/>
+                  <field name="inv_cutting_plan_no"/>
+                  <field name="inv_return_reason_code"/>
+                  <field name="inv_serial_no"/>
+                  <field name="inv_package_no"/>
+                  <field name="inv_picked"/>
+                  <field name="inv_open_flag"/>
+                  <field name="inv_assemble_to_order"/>
+                  <field name="inv_drop_shipment"/>
+                  <field name="inv_inventory_by_location"/>
+                  <field name="inv_inventory"/>
+                  <field name="inv_reserved_quantity"/>
+                  <field name="inv_remaining_quantity"/>
+                  <field name="inv_shipped_qty_not_returned"/>
+                  <field name="inv_invoiced_quantity"/>
+                  <field name="inv_expiration_date"/>
+                  <field name="inv_yield_value"/>
+                  <field name="inv_unitcost_cwt"/>
+                  <field name="inv_cost_amount_actual"/>
+                  <field name="inv_cost_amount_expected"/>
+                  <field name="inv_cost_amount_non_invtbl"/>
+                  <field name="inv_sales_amount_expected"/>
+                  <field name="inv_sales_amount_actual"/>
+                  <field name="inv_cost_amount_expected_acy"/>
+                  <field name="inv_cost_amount_actual_acy"/>
+                  <field name="inv_cost_amount_non_invtbl_acy"/>
+                  <field name="inv_completely_invoiced"/>
+                </group>
+              </page>
+              <page string="MTR">
+                <group>
+                  <field name="mtr_id"/>
+                  <field name="mtr_heat_number"/>
+                  <field name="mtr_batch_number"/>
+                  <field name="mtr_piece_no"/>
+                  <field name="mtr_grade"/>
+                  <field name="mtr_manufacturer"/>
+                  <field name="mtr_certificate_number"/>
+                  <field name="mtr_certificate_date"/>
+                  <field name="mtr_c"/>
+                  <field name="mtr_mn"/>
+                  <field name="mtr_ce"/>
+                  <field name="mtr_si"/>
+                  <field name="mtr_p"/>
+                  <field name="mtr_s"/>
+                  <field name="mtr_b"/>
+                  <field name="mtr_v"/>
+                  <field name="mtr_nb"/>
+                  <field name="mtr_ti"/>
+                  <field name="mtr_al"/>
+                  <field name="mtr_cu"/>
+                  <field name="mtr_ni"/>
+                  <field name="mtr_cr"/>
+                  <field name="mtr_mo"/>
+                  <field name="mtr_yield_strength"/>
+                  <field name="mtr_tensile_strength"/>
+                  <field name="mtr_elongation"/>
+                  <field name="mtr_reduction_area"/>
+                  <field name="mtr_hardness"/>
+                  <field name="mtr_thickness"/>
+                  <field name="mtr_impact_test_temp"/>
+                  <field name="mtr_impact_coupon_size"/>
+                  <field name="mtr_impact_specimen_1"/>
+                  <field name="mtr_impact_specimen_2"/>
+                  <field name="mtr_impact_specimen_3"/>
+                  <field name="mtr_impact_average"/>
+                  <field name="mtr_country_of_melt"/>
+                  <field name="mtr_country_of_manufacture"/>
+                </group>
+              </page>
+            </notebook>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_mtr_data">
+      <field name="name">MTR Data</field>
+      <field name="res_model">mtr.data</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+
+
+    <record model="ir.actions.act_window" id="action_inventory_record">
+      <field name="name">Inventory</field>
+      <field name="res_model">inventory.record</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_mtr_inventory_join_report">
+      <field name="name">MTR Inventory Join</field>
+      <field name="res_model">mtr.inventory.join.report</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_mtr_pdf_upload_multi_popup">
+      <field name="name">Submit MTR Certificate</field>
+      <field name="res_model">mtr.pdf.upload.multi.wizard</field>
+      <field name="view_mode">form</field>
+      <field name="target">new</field>
+    </record>
+
+    <record model="ir.actions.client" id="action_mtr_chatbot">
+      <field name="name">MTR Chatbot</field>
+      <field name="tag">mtr_module.mtr_chatbot_action</field>
+    </record>
+
+    <!-- Removed queue dashboard action -->
+
+
+
+    <!-- Removed queue cron -->
+
+
+    <menuitem name="MTR Module"
+              id="mtr_module.menu_root"
+              action="action_mtr_data"
+              sequence="10"
+              web_icon="mtr_module,static/description/icon.png"/>
+
+    <menuitem name="MTR Data" id="mtr_module.menu_mtr_data" parent="mtr_module.menu_root"
+              action="action_mtr_data" sequence="5"/>
+    <menuitem name="Submit MTR Certificate" id="mtr_module.menu_mtr_pdf_upload_multi" parent="mtr_module.menu_root"
+              action="action_mtr_pdf_upload_multi_popup" sequence="11"/>
+    <menuitem name="MTR Chatbot" id="mtr_module.menu_mtr_chatbot" parent="mtr_module.menu_root"
+              action="action_mtr_chatbot" sequence="12"/>
+    <menuitem name="Inventory" id="mtr_module.menu_inventory" parent="mtr_module.menu_root"
+              action="action_inventory_record"/>
+    <menuitem name="Join Report" id="mtr_module.menu_join_report" parent="mtr_module.menu_root"
+              action="action_mtr_inventory_join_report"/>
+  </data>
+</odoo>

@@ -1,0 +1,23 @@
+<templates xml:space="preserve">
+    <t t-name="mtr_module.MtrChatbot">
+        <div class="o_mtr_chatbot">
+            <div class="o_mtr_chatbot_header">
+                MTR Chatbot
+                <span class="o_mtr_chatbot_mcp_badge">
+                    <span class="o_mtr_chatbot_mcp_dot"></span>
+                    Brannon Live
+                </span>
+            </div>
+            <div class="o_mtr_chatbot_context"></div>
+            <div class="o_mtr_chatbot_body">
+                <div class="o_mtr_chatbot_messages"></div>
+            </div>
+            <div class="o_mtr_chatbot_input">
+                <textarea class="o_mtr_chatbot_input_text" placeholder="Ask anything about inventory, grades, thickness, compliance..."></textarea>
+                <button type="button" class="btn btn-primary o_mtr_chatbot_send">Ask</button>
+                <button type="button" class="btn btn-secondary o_mtr_chatbot_clear">Clear</button>
+                <span class="o_mtr_chatbot_loading o_hidden">Claude is thinking</span>
+            </div>
+        </div>
+    </t>
+</templates>

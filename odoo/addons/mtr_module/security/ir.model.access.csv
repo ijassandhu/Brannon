@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mtr_data,access.mtr.data,model_mtr_data,base.group_user,1,1,1,1
+access_inventory_record,access.inventory.record,model_inventory_record,base.group_user,1,1,1,1
+access_mtr_inventory_join_report,access.mtr.inventory.join.report,model_mtr_inventory_join_report,base.group_user,1,0,0,0
+access_inventory_import_mapping_line,access.inventory.import.mapping.line,model_inventory_import_mapping_line,base.group_user,1,1,1,1
+access_mtr_specification,access.mtr.specification,model_mtr_specification,base.group_user,1,1,1,1
+access_mtr_spec_chem_limit,access.mtr.spec.chem.limit,model_mtr_spec_chem_limit,base.group_user,1,1,1,1
+access_mtr_spec_condition_rule,access.mtr.spec.condition.rule,model_mtr_spec_condition_rule,base.group_user,1,1,1,1
+access_mtr_spec_mech_limit,access.mtr.spec.mech.limit,model_mtr_spec_mech_limit,base.group_user,1,1,1,1
+access_mtr_spec_impact_limit,access.mtr.spec.impact.limit,model_mtr_spec_impact_limit,base.group_user,1,1,1,1
+access_mtr_spec_ce_threshold,access.mtr.spec.ce.threshold,model_mtr_spec_ce_threshold,base.group_user,1,1,1,1
+access_mtr_spec_custom_rule,access.mtr.spec.custom.rule,model_mtr_spec_custom_rule,base.group_user,1,1,1,1
+access_mtr_spec_rule_branch,access.mtr.spec.rule.branch,model_mtr_spec_rule_branch,base.group_user,1,1,1,1
+access_mtr_spec_upload_wizard,access.mtr.spec.upload.wizard,model_mtr_spec_upload_wizard,base.group_user,1,1,1,1
+access_mtr_spec_match_wizard,access.mtr.spec.match.wizard,model_mtr_spec_match_wizard,base.group_user,1,1,1,1
+access_mtr_spec_match_result,access.mtr.spec.match.result,model_mtr_spec_match_result,base.group_user,1,1,1,1

@@ -1,0 +1,8 @@
+<odoo>
+    <data>
+        <record id="base.module_mtr_module" model="ir.module.module">
+            <field name="icon">/mtr_module/static/description/icon.png</field>
+            <field name="icon_image" type="base64" file="mtr_module/static/description/icon.png"/>
+        </record>
+    </data>
+</odoo>

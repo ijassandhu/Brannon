@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Spec Registry -->
+  <record id="view_mtr_specification_tree" model="ir.ui.view">
+    <field name="name">mtr.specification.tree</field>
+    <field name="model">mtr.specification</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="name"/>
+        <field name="customer"/>
+        <field name="status"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_mtr_specification_form" model="ir.ui.view">
+    <field name="name">mtr.specification.form</field>
+    <field name="model">mtr.specification</field>
+    <field name="arch" type="xml">
+      <form string="Specification">
+        <header>
+          <button name="action_open_match_wizard" type="object" class="btn-primary" string="Run Match"/>
+          <field name="status" widget="statusbar" statusbar_visible="active,archived"/>
+        </header>
+        <sheet>
+          <group>
+            <group>
+              <field name="name"/>
+              <field name="customer"/>
+            </group>
+            <group>
+              <field name="status"/>
+              <field name="ce_formula"/>
+            </group>
+          </group>
+          <notebook>
+            <page string="AI Branches">
+              <field name="branch_ids" nolabel="1">
+                <tree editable="bottom">
+                  <field name="sequence"/>
+                  <field name="name"/>
+                  <field name="branch_key"/>
+                  <field name="spec_type"/>
+                  <field name="astm_equivalent"/>
+                  <field name="grades"/>
+                  <field name="manufacturer_grades"/>
+                  <field name="approved_substitutes"/>
+                  <field name="selector_summary"/>
+                </tree>
+                <form string="AI Branch">
+                  <sheet>
+                    <group>
+                      <group>
+                        <field name="sequence"/>
+                        <field name="name"/>
+                        <field name="branch_key"/>
+                        <field name="spec_type"/>
+                      </group>
+                      <group>
+                        <field name="astm_equivalent"/>
+                        <field name="grades"/>
+                        <field name="manufacturer_grades"/>
+                        <field name="approved_substitutes"/>
+                      </group>
+                    </group>
+                    <group>
+                      <field name="selector_summary"/>
+                      <field name="ai_summary"/>
+                      <field name="notes"/>
+                    </group>
+                    <notebook>
+                      <page string="Chemistry">
+                        <field name="branch_chem_limit_ids" nolabel="1">
+                          <tree editable="bottom">
+                            <field name="element"/>
+                            <field name="min_value"/>
+                            <field name="max_value"/>
+                            <field name="source"/>
+                          </tree>
+                        </field>
+                      </page>
+                      <page string="Mechanical">
+                        <field name="branch_mech_limit_ids" nolabel="1">
+                          <tree editable="bottom">
+                            <field name="property"/>
+                            <field name="min_value"/>
+                            <field name="max_value"/>
+                            <field name="unit"/>
+                            <field name="specimen_size"/>
+                          </tree>
+                        </field>
+                      </page>
+                      <page string="Impact">
+                        <field name="branch_impact_limit_ids" nolabel="1">
+                          <tree editable="bottom">
+                            <field name="temperature"/>
+                            <field name="coupon_size"/>
+                            <field name="min_average"/>
+                            <field name="min_individual"/>
+                            <field name="unit"/>
+                            <field name="min_readings"/>
+                            <field name="orientation"/>
+                          </tree>
+                        </field>
+                      </page>
+                      <page string="Conditional Rules">
+                        <field name="branch_condition_rule_ids" nolabel="1">
+                          <tree editable="bottom">
+                            <field name="target_element"/>
+                            <field name="condition_element"/>
+                            <field name="condition_type"/>
+                            <field name="condition_threshold"/>
+                            <field name="target_adjustment"/>
+                            <field name="target_new_max"/>
+                            <field name="description"/>
+                          </tree>
+                        </field>
+                      </page>
+                      <page string="Carbon Equivalency">
+                        <field name="branch_ce_threshold_ids" nolabel="1">
+                          <tree editable="bottom">
+                            <field name="thickness_min"/>
+                            <field name="thickness_max"/>
+                            <field name="max_ce"/>
+                          </tree>
+                        </field>
+                      </page>
+                      <page string="Custom Rules">
+                        <field name="branch_custom_rule_ids" nolabel="1">
+                          <tree editable="bottom">
+                            <field name="rule_type"/>
+                            <field name="label"/>
+                            <field name="field_name"/>
+                            <field name="operator"/>
+                            <field name="value_text"/>
+                            <field name="value_number"/>
+                            <field name="value_unit"/>
+                          </tree>
+                        </field>
+                      </page>
+                    </notebook>
+                  </sheet>
+                </form>
+              </field>
+            </page>
+            <page string="Notes">
+              <field name="notes" nolabel="1"/>
+            </page>
+          </notebook>
+        </sheet>
+        <div class="oe_chatter">
+          <field name="message_follower_ids" widget="mail_followers"/>
+          <field name="message_ids" widget="mail_thread"/>
+        </div>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_mtr_specification" model="ir.actions.act_window">
+    <field name="name">Specifications</field>
+    <field name="res_model">mtr.specification</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <!-- Spec Upload Wizard -->
+  <record id="view_mtr_spec_upload_wizard_form" model="ir.ui.view">
+    <field name="name">mtr.spec.upload.wizard.form</field>
+    <field name="model">mtr.spec.upload.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Upload Spec PDF">
+        <sheet>
+          <group>
+            <field name="file_ids" widget="many2many_binary" options="{'multi': true}"/>
+          </group>
+        </sheet>
+        <footer>
+          <button string="Submit" type="object" name="action_submit_spec" class="btn-primary"/>
+          <button string="Cancel" class="btn-secondary" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_mtr_spec_upload" model="ir.actions.act_window">
+    <field name="name">Upload Spec PDF</field>
+    <field name="res_model">mtr.spec.upload.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+
+  <!-- Spec Match Wizard -->
+  <record id="view_mtr_spec_match_wizard_form" model="ir.ui.view">
+    <field name="name">mtr.spec.match.wizard.form</field>
+    <field name="model">mtr.spec.match.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Spec Match">
+        <sheet>
+          <group>
+            <field name="spec_id"/>
+            <field name="branch_id"/>
+          </group>
+          <field name="result_ids" nolabel="1">
+            <tree create="false" edit="false" delete="false">
+              <field name="grade_match"/>
+              <field name="matched_grade_label"/>
+              <field name="batch_number"/>
+              <field name="lot_number"/>
+              <field name="grade"/>
+              <field name="chem_status"/>
+              <field name="mech_status"/>
+              <field name="impact_status"/>
+              <field name="custom_status"/>
+              <field name="ce_status"/>
+              <field name="ce_value"/>
+              <field name="ce_max"/>
+              <field name="dimensions"/>
+              <field name="weight"/>
+              <field name="location"/>
+              <field name="missing_notes"/>
+            </tree>
+          </field>
+          <footer>
+            <button string="Run Matching" type="object" name="action_run_match" class="btn-primary"/>
+            <button string="Close" class="btn-secondary" special="cancel"/>
+          </footer>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <!-- Menus -->
+  <menuitem name="Spec Registry" id="mtr_module.menu_spec_registry" parent="mtr_module.menu_root" action="action_mtr_specification" sequence="20"/>
+  <menuitem name="Upload Spec PDF" id="mtr_module.menu_spec_upload" parent="mtr_module.menu_root" action="action_mtr_spec_upload" sequence="21"/>
+</odoo>

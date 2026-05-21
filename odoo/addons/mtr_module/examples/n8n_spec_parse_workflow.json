@@ -1,0 +1,385 @@
+{
+  "name": "spec-parse-and-ingest-customer-routed",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spec-upload",
+        "options": {}
+      },
+      "id": "0ee6f4aa-5ed9-4c09-8db2-6c041960e981",
+      "name": "Webhook Spec Upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "450fef97-d8f4-4483-a3f6-c3750556a89e"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const root = item.json || {};\n  const body = root.body || {};\n  const data = root.data || {};\n\n  const fileBase64 =\n    root.file_content_base64 ||\n    body.file_content_base64 ||\n    data.file_content_base64 ||\n    root.file_data ||\n    body.file_data ||\n    data.file_data;\n\n  const specId =\n    root.spec_id ||\n    body.spec_id ||\n    data.spec_id ||\n    root.specId ||\n    body.specId ||\n    data.specId;\n\n  const normalizeId = (v) => {\n    if (v === undefined || v === null) return '';\n    if (typeof v === 'number') return String(v);\n    const s = String(v).trim();\n    if (!s) return '';\n    const m = s.match(/\\d+/);\n    return m ? m[0] : s;\n  };\n\n  const fileName =\n    root.file_name ||\n    body.file_name ||\n    data.file_name ||\n    'Spec.pdf';\n\n  if (!fileBase64) {\n    throw new Error(`Webhook payload missing file_content_base64. Keys: ${Object.keys(root).join(', ')}`);\n  }\n\n  // Simple deterministic hash (no crypto required)\n  const hashDjb2 = (str) => {\n    let h = 5381;\n    for (let i = 0; i < str.length; i++) {\n      h = ((h << 5) + h) + str.charCodeAt(i);\n      h |= 0;\n    }\n    return (h >>> 0).toString(16);\n  };\n\n  const pdfFingerprint = hashDjb2(fileBase64);\n\n  return {\n    json: {\n      ...root,\n      ...(Object.keys(body).length ? body : {}),\n      ...(Object.keys(data).length ? data : {}),\n      file_name: fileName,\n      file_content_base64: fileBase64,\n      pdf_fingerprint: pdfFingerprint,\n      spec_id: normalizeId(specId),\n    },\n    binary: {\n      data0: {\n        data: fileBase64,\n        mimeType: 'application/pdf',\n        fileName,\n      },\n    },\n  };\n});\n"
+      },
+      "id": "9f696f43-5fa7-42fb-b8c1-25f23a359cc1",
+      "name": "Read Binary File1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const promises = items.map(async (item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook Spec Upload')[idx]?.json || {};\n\n  let pdf =\n    j.file_content_base64 ||\n    original.file_content_base64 ||\n    j.file_data ||\n    original.file_data ||\n    '';\n\n  if (pdf.startsWith('data:application/pdf;base64,')) {\n    pdf = pdf.replace('data:application/pdf;base64,', '');\n  }\n\n  if (!pdf) {\n    try {\n      const buf = await this.helpers.getBinaryDataBuffer(idx, 'data0');\n      pdf = buf.toString('base64');\n    } catch (e) {}\n  }\n\n  const prompt = String(j.selected_prompt || j.extraction_system_message || '').trim();\n\n  if (!pdf || !prompt) {\n    throw new Error('Missing pdf or selected spec prompt');\n  }\n\n  return {\n    json: {\n      ...original,\n      ...j,\n      file_content_base64: pdf,\n      claude_extract_body: {\n        model: 'claude-sonnet-4-20250514',\n        max_tokens: 8192,\n        temperature: 0,\n        messages: [\n          {\n            role: 'user',\n            content: [\n              {\n                type: 'document',\n                source: {\n                  type: 'base64',\n                  media_type: 'application/pdf',\n                  data: pdf\n                }\n              },\n              {\n                type: 'text',\n                text: prompt\n              }\n            ]\n          }\n        ]\n      }\n    },\n    binary: item.binary\n  };\n});\n\nreturn Promise.all(promises);"
+      },
+      "id": "f2f83331-3109-4b72-b938-cd1d1df4ec88",
+      "name": "Prepare Claude Spec Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.claude_extract_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "bf4144ba-d6c7-44f1-89bf-c15449b8106c",
+      "name": "Claude Extract Spec",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zQH1AIJA5SRsvfu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json || {};\n  const text = (j.content && j.content[0] && j.content[0].text) || '';\n  let obj = {};\n  try {\n    obj = JSON.parse(text.trim());\n  } catch (e) {\n    const a = text.indexOf('{');\n    const b = text.lastIndexOf('}');\n    if (a >= 0 && b > a) {\n      try { obj = JSON.parse(text.slice(a, b + 1)); } catch (_) {}\n    }\n  }\n  return {\n    json: {\n      ...j,\n      output: obj,\n    },\n    binary: item.binary\n  };\n});\n"
+      },
+      "id": "6e7ebd5f-7bcd-4eca-acae-7816a2fa41cc",
+      "name": "Parse Claude Spec",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook Spec Upload')[idx]?.json || {};\n  const out = j.output || j.data?.output || j.data || j.result?.output || j.result || j;\n  return {\n    json: {\n      spec_id: j.spec_id || original.spec_id || original.specId || '',\n      output: out,\n    }\n  };\n});\n"
+      },
+      "id": "9eec3c30-22db-4e98-b33b-bd98895d3b79",
+      "name": "Extract Claude Spec Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook Spec Upload')[idx]?.json || {};\n  const out = j.output || j.data?.output || j.data || j.result?.output || j.result || j;\n\n  const cleanText = (v) =>\n    String(v ?? '')\n      .trim()\n      .replace(/\\s+/g, ' ');\n\n  const normalizeList = (v) => {\n    if (!v) return [];\n    if (Array.isArray(v)) return v.map(cleanText).filter(Boolean);\n    if (typeof v === 'string') {\n      return v.split(',').map(cleanText).filter(Boolean);\n    }\n    return [cleanText(v)].filter(Boolean);\n  };\n\n  const dedupeStrings = (arr) => {\n    const seen = new Set();\n    const result = [];\n    for (const value of normalizeList(arr)) {\n      const key = value.toLowerCase();\n      if (!seen.has(key)) {\n        seen.add(key);\n        result.push(value);\n      }\n    }\n    return result;\n  };\n\n  const dedupeObjects = (arr, keyFn) => {\n    if (!Array.isArray(arr)) return [];\n    const map = new Map();\n    for (const obj of arr) {\n      if (!obj || typeof obj !== 'object') continue;\n      const key = keyFn(obj);\n      if (!map.has(key)) map.set(key, obj);\n    }\n    return Array.from(map.values());\n  };\n\n  const normalizeEquivalents = (v) => dedupeStrings(v).join(', ');\n\n  const normalizeNumber = (v) => {\n    if (v === null || v === undefined || v === '') return v;\n    if (typeof v === 'number') return v;\n    let s = String(v).trim();\n    if (!s) return v;\n    s = s.replace(/,/g, '');\n    if (/^-?\\d+(\\.\\d+)?$/.test(s)) {\n      const n = Number(s);\n      return Number.isFinite(n) ? n : v;\n    }\n    return v;\n  };\n\n  const normalizeImpactUnit = (u) => {\n    const s = String(u || '').trim().toLowerCase();\n    if (['ft-lb','ft-lbs','ftlb','ftlbs','ft lb','ft lbs'].includes(s)) return 'ft-lbf';\n    if (['j','joule','joules'].includes(s)) return 'ft-lbf';\n    return s || 'ft-lbf';\n  };\n\n  const normalizeStrengthToPsi = (v, unit, property) => {\n    const n = normalizeNumber(v);\n    if (n === null || n === undefined || n === '') return n;\n\n    const p = String(property || '').trim().toLowerCase();\n    const u = String(unit || '').trim().toLowerCase();\n\n    const isStrength =\n      p.includes('yield') ||\n      p.includes('tensile') ||\n      p === 'ys' ||\n      p === 'ts';\n\n    if (!isStrength || typeof n !== 'number') return n;\n\n    if (u === 'psi') return n;\n    if (u === 'ksi' || u === 'kpsi') return n * 1000;\n    if (u === 'mpa') return Math.round(n * 145.038);\n\n    // Safety: a strength value below 1000 is usually ksi even if unit was missed.\n    if (!u && n > 0 && n < 1000) return n * 1000;\n\n    return n;\n  };\n\n  const normalizeMechUnit = (unit, property) => {\n    const p = String(property || '').trim().toLowerCase();\n    const u = String(unit || '').trim().toLowerCase();\n\n    const isStrength =\n      p.includes('yield') ||\n      p.includes('tensile') ||\n      p === 'ys' ||\n      p === 'ts';\n\n    if (isStrength) return 'psi';\n    if (u === 'brinell' || u === 'hb' || u === 'hbw') return 'HBW';\n    if (u === 'rockwell c') return 'hrc';\n    return u;\n  };\n\n  const slug = (v) =>\n    String(v ?? '')\n      .trim()\n      .toLowerCase()\n      .replace(/&/g, 'and')\n      .replace(/[^a-z0-9]+/g, '_')\n      .replace(/^_+|_+$/g, '');\n\n  const makeKey = (...parts) => parts.map(slug).join('|');\n\n  const specCode = out.spec_code || out.specName || out.spec_name || j.spec_name || '';\n  const specTitle = out.spec_title || out.product_name || out.productName || '';\n  const displayName = out.display_name || (specCode && specTitle ? `${specCode} - ${specTitle}` : (out.spec_name || specCode));\n  const customer = out.customer || j.spec_customer_name || '';\n  const specKey = makeKey(customer, specCode);\n\n  const productForms = dedupeObjects(Array.isArray(out.product_forms) ? out.product_forms : [], l =>\n    [\n      cleanText(l.form).toLowerCase(),\n      l.thickness_min ?? '',\n      l.thickness_max ?? '',\n      cleanText(l.thickness_unit).toLowerCase()\n    ].join('|')\n  ).map(l => ({\n    ...l,\n    thickness_min: normalizeNumber(l.thickness_min),\n    thickness_max: normalizeNumber(l.thickness_max),\n    form_key: makeKey(specKey, l.form, l.thickness_min, l.thickness_max, l.thickness_unit)\n  }));\n\n  const chemLimits = dedupeObjects(Array.isArray(out.chem_limits) ? out.chem_limits : [], l =>\n    [\n      cleanText(l.rule_set_key || 'general').toLowerCase(),\n      cleanText(l.element).toLowerCase(),\n      JSON.stringify(l.applies_to_forms || []),\n      JSON.stringify(l.applies_to_grades || []),\n      l.min ?? '',\n      l.max ?? '',\n      cleanText(l.unit || '%').toLowerCase()\n    ].join('|')\n  ).map(l => ({\n    ...l,\n    element: cleanText(l.element).toLowerCase() === 'cb' ? 'nb' : cleanText(l.element).toLowerCase(),\n    min: normalizeNumber(l.min),\n    max: normalizeNumber(l.max),\n    unit: l.unit || '%',\n    row_key: makeKey(specKey, l.rule_set_key || 'general', 'chem', l.element, (l.applies_to_grades || []).join('_'), (l.applies_to_forms || []).join('_'))\n  }));\n\n  const mechLimits = dedupeObjects(Array.isArray(out.mech_limits) ? out.mech_limits : [], l =>\n    [\n      cleanText(l.rule_set_key || 'general').toLowerCase(),\n      cleanText(l.property).toLowerCase(),\n      cleanText(l.specimen_size).toLowerCase(),\n      cleanText(l.direction).toLowerCase(),\n      JSON.stringify(l.applies_to_forms || []),\n      JSON.stringify(l.applies_to_grades || []),\n      l.min ?? '',\n      l.max ?? '',\n      cleanText(l.unit).toLowerCase()\n    ].join('|')\n  ).map(l => ({\n    ...l,\n    min: normalizeStrengthToPsi(l.min, l.unit, l.property),\n    max: normalizeStrengthToPsi(l.max, l.unit, l.property),\n    unit: normalizeMechUnit(l.unit, l.property),\n    row_key: makeKey(specKey, l.rule_set_key || 'general', 'mech', l.property, l.specimen_size, l.direction, (l.applies_to_grades || []).join('_'), (l.applies_to_forms || []).join('_'))\n  }));\n\n  const impactLimits = dedupeObjects(Array.isArray(out.impact_limits) ? out.impact_limits : [], l =>\n    [\n      cleanText(l.rule_set_key || 'general').toLowerCase(),\n      l.temperature ?? '',\n      cleanText(l.temperature_unit).toLowerCase(),\n      cleanText(l.coupon_size).toLowerCase(),\n      l.min_average ?? '',\n      l.min_individual ?? '',\n      cleanText(l.unit).toLowerCase(),\n      cleanText(l.orientation).toLowerCase(),\n      JSON.stringify(l.applies_to_forms || []),\n      JSON.stringify(l.applies_to_grades || [])\n    ].join('|')\n  ).map(l => ({\n    ...l,\n    unit: normalizeImpactUnit(l.unit),\n    temperature: normalizeNumber(l.temperature),\n    min_average: normalizeNumber(l.min_average),\n    min_individual: normalizeNumber(l.min_individual),\n    row_key: makeKey(specKey, l.rule_set_key || 'general', 'impact', l.temperature, l.temperature_unit, l.coupon_size, l.orientation, (l.applies_to_grades || []).join('_'), (l.applies_to_forms || []).join('_'))\n  }));\n\n  const conditionRules = dedupeObjects(Array.isArray(out.condition_rules) ? out.condition_rules : [], l =>\n    [\n      cleanText(l.target_element).toLowerCase(),\n      cleanText(l.condition_element).toLowerCase(),\n      cleanText(l.condition_type).toLowerCase(),\n      l.condition_threshold ?? '',\n      l.target_adjustment ?? '',\n      l.target_new_max ?? ''\n    ].join('|')\n  ).map(l => ({\n    ...l,\n    condition_threshold: normalizeNumber(l.condition_threshold),\n    target_adjustment: normalizeNumber(l.target_adjustment),\n    target_new_max: normalizeNumber(l.target_new_max),\n    row_key: makeKey(specKey, 'condition', l.target_element, l.condition_element, l.condition_type, l.condition_threshold)\n  }));\n\n  const ceThresholds = dedupeObjects(Array.isArray(out.ce_thresholds) ? out.ce_thresholds : [], l =>\n    [\n      cleanText(l.rule_set_key || 'general').toLowerCase(),\n      l.thickness_min ?? '',\n      l.thickness_max ?? '',\n      cleanText(l.thickness_unit).toLowerCase(),\n      l.max_ce ?? '',\n      JSON.stringify(l.applies_to_forms || []),\n      JSON.stringify(l.applies_to_grades || [])\n    ].join('|')\n  ).map(l => ({\n    ...l,\n    thickness_min: normalizeNumber(l.thickness_min),\n    thickness_max: normalizeNumber(l.thickness_max),\n    max_ce: normalizeNumber(l.max_ce),\n    row_key: makeKey(specKey, l.rule_set_key || 'general', 'ce', l.thickness_min, l.thickness_max, l.thickness_unit, (l.applies_to_grades || []).join('_'), (l.applies_to_forms || []).join('_'))\n  }));\n\n  return {\n    json: {\n      token: j.spec_ingest_token || '',\n      spec_id: j.spec_id || (original && (original.spec_id || original.specId)) || '',\n      spec_customer_key: j.spec_customer_key || '',\n      spec_customer_name: j.spec_customer_name || '',\n      spec_customer_confidence: j.spec_customer_confidence || 0,\n      prompt_key: j.prompt_key || '',\n      spec_key: specKey,\n      spec_name: out.spec_name || displayName || specCode,\n      spec_code: specCode,\n      spec_title: specTitle,\n      display_name: displayName,\n      customer,\n      spec_type: out.spec_type || \"\",\n      ai_summary: out.ai_summary || \"\",\n      branches: Array.isArray(out.branches) ? out.branches : [],\n      astm_equivalent: normalizeEquivalents(out.astm_equivalent || out.astm_equivalents),\n      grades: normalizeEquivalents(out.grades || out.all_grades),\n      manufacturer_grades: normalizeEquivalents(out.manufacturer_grades),\n      approved_substitutes: normalizeEquivalents(out.approved_substitutes),\n      product_forms: productForms,\n      ce_formula: out.ce_formula || '',\n      chem_limits: chemLimits,\n      mech_limits: mechLimits,\n      impact_limits: impactLimits,\n      condition_rules: conditionRules,\n      ce_thresholds: ceThresholds,\n      notes: out.notes || '',\n      pdf_fingerprint: j.pdf_fingerprint || original.pdf_fingerprint || '',\n      db_name: j.db_name || (original && (original.db_name || original.database)) || '',\n      odoo_url: j.odoo_url || 'http://host.docker.internal:8069'\n    }\n  };\n});"
+      },
+      "id": "d7836ee8-40e1-44cd-9359-d03d3378c531",
+      "name": "Build Spec Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.odoo_url + '/mtr_module/spec_ingest?db=' + ($json.db_name )}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "17ded962-362a-4697-a5a2-e237993f0b53",
+      "name": "Post To Odoo Spec Ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const promises = items.map(async (item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook Spec Upload')[idx]?.json || {};\n\n  let pdf =\n    j.file_content_base64 ||\n    original.file_content_base64 ||\n    j.file_data ||\n    original.file_data ||\n    '';\n\n  if (pdf.startsWith('data:application/pdf;base64,')) {\n    pdf = pdf.replace('data:application/pdf;base64,', '');\n  }\n\n  if (!pdf) {\n    try {\n      const buf = await this.helpers.getBinaryDataBuffer(idx, 'data0');\n      pdf = buf.toString('base64');\n    } catch (e) {}\n  }\n\n  if (!pdf) {\n    throw new Error('Missing PDF for spec customer detection');\n  }\n\n  const prompt = `You are a strict classifier for customer steel specification PDFs.\nReturn ONLY valid JSON. No commentary.\n\nReturn schema:\n{\n  \"spec_customer_key\": \"\",\n  \"spec_customer_name\": \"\",\n  \"confidence\": 0\n}\n\nChoose spec_customer_key from this list only:\n- CATERPILLAR\n- HITACHI\n- KOMATSU\n- UNKNOWN\n\nRules:\n- Use document header, logo, footer, title block, and specification numbering style.\n- Caterpillar specs usually contain \"Caterpillar\", \"Corporate Product & Process Specification\", or spec codes like 1E0170, 1E0357, 1E0577, 1E0860.\n- Hitachi specs usually contain \"HITACHI Construction Truck Mfg. Ltd.\" or spec codes like 31121,316 or 31113,121.\n- Komatsu specs usually contain \"Komatsu\", \"Komatsu - Peoria\", or spec codes like LW0090, LW0936A, LW0940, LW0968, LW1008A, LW1020A, LW5725.\n- If unsure, return UNKNOWN.\n- Do not extract material values here. Classification only.`;\n\n  return {\n    json: {\n      ...original,\n      ...j,\n      file_content_base64: pdf,\n      claude_spec_customer_body: {\n        model: 'claude-sonnet-4-20250514',\n        max_tokens: 512,\n        temperature: 0,\n        messages: [\n          {\n            role: 'user',\n            content: [\n              {\n                type: 'document',\n                source: {\n                  type: 'base64',\n                  media_type: 'application/pdf',\n                  data: pdf\n                }\n              },\n              {\n                type: 'text',\n                text: prompt\n              }\n            ]\n          }\n        ]\n      }\n    },\n    binary: item.binary\n  };\n});\n\nreturn Promise.all(promises);"
+      },
+      "id": "369119d3-11c2-46df-9e34-1af4abc2aac3",
+      "name": "Prepare Claude Spec Customer Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.claude_spec_customer_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "f1407f72-7622-47a2-a2f7-7d9c04701723",
+      "name": "Claude Detect Spec Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zQH1AIJA5SRsvfu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, idx) => {\n  const j = item.json || {};\n  const original = $items('Read Binary File1')[idx]?.json || $items('Webhook Spec Upload')[idx]?.json || {};\n\n  const text = (j.content && j.content[0] && j.content[0].text) || '';\n  let obj = {};\n\n  try {\n    obj = JSON.parse(text.trim());\n  } catch (e) {\n    const a = text.indexOf('{');\n    const b = text.lastIndexOf('}');\n    if (a >= 0 && b > a) {\n      try { obj = JSON.parse(text.slice(a, b + 1)); } catch (_) {}\n    }\n  }\n\n  const rawKey = String(obj.spec_customer_key || obj.spec_customer_name || '').trim().toUpperCase();\n\n  const aliases = {\n    CAT: 'CATERPILLAR',\n    CATERPILLAR: 'CATERPILLAR',\n    'CATERPILLAR INC.': 'CATERPILLAR',\n    HITACHI: 'HITACHI',\n    'HITACHI CONSTRUCTION TRUCK MFG. LTD.': 'HITACHI',\n    'HITACHI CONSTRUCTION TRUCK MFG LTD': 'HITACHI',\n    KOMATSU: 'KOMATSU',\n    'KOMATSU - PEORIA': 'KOMATSU',\n    'KOMATSU PEORIA': 'KOMATSU',\n    UNKNOWN: 'UNKNOWN'\n  };\n\n  const specCustomerKey = aliases[rawKey] || 'UNKNOWN';\n\n  const names = {\n    CATERPILLAR: 'Caterpillar Inc.',\n    HITACHI: 'HITACHI Construction Truck Mfg. Ltd.',\n    KOMATSU: 'Komatsu',\n    UNKNOWN: ''\n  };\n\n  return {\n    json: {\n      ...original,\n      ...j,\n      spec_customer_key: specCustomerKey,\n      spec_customer_name: names[specCustomerKey],\n      spec_customer_confidence: obj.confidence || 0\n    },\n    binary: item.binary\n  };\n});"
+      },
+      "id": "c444bcf0-6f49-406a-9435-97876712fc4c",
+      "name": "Parse Claude Spec Customer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const BASE_SPEC_PROMPT = `You are an expert steel specification parser. Return ONLY valid JSON. No commentary. Read the entire PDF and decide the matching structure yourself. Do not rely on predeclared fields such as revision, effective_date, requires_impact, or requires_ce.\n\nReturn this JSON schema:\n{\n  \"spec_name\": \"\",\n  \"spec_code\": \"\",\n  \"spec_title\": \"\",\n  \"display_name\": \"\",\n  \"customer\": \"\",\n  \"notes\": \"\",\n  \"branches\": [\n    {\n      \"branch_key\": \"\",\n      \"name\": \"\",\n      \"selector_summary\": \"\",\n      \"spec_type\": \"\",\n      \"astm_equivalent\": [],\n      \"grades\": [],\n      \"manufacturer_grades\": [],\n      \"approved_substitutes\": [],\n      \"ai_summary\": \"\",\n      \"selector\": {\n        \"field\": \"\",\n        \"operator\": \"\",\n        \"value\": null,\n        \"unit\": \"\"\n      },\n      \"product_forms\": [\n        {\n          \"form\": \"\",\n          \"thickness_min\": null,\n          \"thickness_max\": null,\n          \"thickness_unit\": \"\",\n          \"description\": \"\"\n        }\n      ],\n      \"chem_limits\": [\n        {\n          \"element\": \"\",\n          \"min\": null,\n          \"max\": null,\n          \"unit\": \"%\",\n          \"applies_to_forms\": [],\n          \"applies_to_grades\": [],\n          \"source\": \"\"\n        }\n      ],\n      \"mech_limits\": [\n        {\n          \"property\": \"\",\n          \"min\": null,\n          \"max\": null,\n          \"unit\": \"\",\n          \"specimen_size\": \"\",\n          \"direction\": \"\",\n          \"applies_to_forms\": [],\n          \"applies_to_grades\": [],\n          \"source\": \"\"\n        }\n      ],\n      \"impact_limits\": [\n        {\n          \"temperature\": null,\n          \"temperature_unit\": \"\",\n          \"coupon_size\": \"\",\n          \"min_average\": null,\n          \"min_individual\": null,\n          \"unit\": \"\",\n          \"min_readings\": 3,\n          \"orientation\": \"\",\n          \"applies_to_forms\": [],\n          \"applies_to_grades\": [],\n          \"source\": \"\"\n        }\n      ],\n      \"condition_rules\": [\n        {\n          \"target_element\": \"\",\n          \"condition_element\": \"\",\n          \"condition_type\": \"\",\n          \"condition_threshold\": null,\n          \"target_adjustment\": null,\n          \"target_new_max\": null,\n          \"description\": \"\"\n        }\n      ],\n      \"ce_thresholds\": [\n        {\n          \"thickness_min\": null,\n          \"thickness_max\": null,\n          \"thickness_unit\": \"\",\n          \"max_ce\": null,\n          \"applies_to_forms\": [],\n          \"applies_to_grades\": []\n        }\n      ],\n      \"custom_rules\": [\n        {\n          \"rule_type\": \"\",\n          \"label\": \"\",\n          \"field_name\": \"\",\n          \"operator\": \"\",\n          \"value_text\": \"\",\n          \"value_number\": null,\n          \"value_unit\": \"\",\n          \"description\": \"\"\n        }\n      ],\n      \"notes\": \"\"\n    }\n  ]\n}\n\nRules:\n- Read the entire document and decide all matching branches yourself.\n- Create one branch for every distinct matching path such as thickness ranges, form splits, grade columns, temperature tables, or specimen-size branches.\n- Put branch-specific limits inside that branch.\n- Use the top-level fields for identity only.\n- Do not invent values.\n- Use numbers for numeric values.\n- When the document has thickness splits like 0.6 mm and below versus above 0.6 mm, create separate branches for each split.\n- When tubing and pipe, plate and sheet, or grade columns differ, create separate branches.\n- When a condition changes the limit based on chemistry, thickness, form, temperature, or orientation, model that as a separate branch or branch-scoped condition rule.\n- References and qualifying specs should be stored as notes unless they are actual limits.\n- If a limit is only advisory or recommended, keep it in notes unless the document clearly makes it mandatory.\n- Normalize numeric values into the target units before output. For strength limits, convert yield/tensile into PSI. For hardness, use HBW (Brinell). For elongation and reduction of area, use Percentage. For thickness and plate dimensions, use Inches. For impact temperature, use Fahrenheit. For impact energy, use ft-lbf.\n- For any branch, selector_summary, notes, or branch name that mentions thickness, express the thickness in inches, not millimeters. If the source text is in mm, convert it to inches and write the inches value in the output text as well.\n- If you need traceability, include the original PDF unit in a source_unit field, but min/max values must already be converted to the normalized unit.\n- Put anything that does not fit the core tabs into custom_rules so the branch stays flexible without new schema changes.\n\nReturn JSON only.`;\n\nreturn items.map((item) => {\n  const j = item.json || {};\n  return {\n    json: {\n      ...j,\n      selected_prompt: BASE_SPEC_PROMPT,\n      extraction_system_message: BASE_SPEC_PROMPT,\n      prompt_key: String(j.spec_customer_key || \"UNKNOWN\").trim().toUpperCase()\n    },\n    binary: item.binary\n  };\n});"
+      },
+      "id": "d6c65be7-0a06-4db1-bc78-5e8d31e7df50",
+      "name": "Validate Spec Prompt Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Spec Upload": {
+      "main": [
+        [
+          {
+            "node": "Read Binary File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Binary File1": {
+      "main": [
+        [
+          {
+            "node": "Prepare Claude Spec Customer Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Claude Spec Customer Request": {
+      "main": [
+        [
+          {
+            "node": "Claude Detect Spec Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Detect Spec Customer": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Spec Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Spec Customer": {
+      "main": [
+        [
+          {
+            "node": "Select Spec Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Spec Prompt": {
+      "main": [
+        [
+          {
+            "node": "Validate Spec Prompt Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Spec Prompt Exists": {
+      "main": [
+        [
+          {
+            "node": "Prepare Claude Spec Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Claude Spec Request": {
+      "main": [
+        [
+          {
+            "node": "Claude Extract Spec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Extract Spec": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Spec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Spec": {
+      "main": [
+        [
+          {
+            "node": "Extract Claude Spec Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Claude Spec Output": {
+      "main": [
+        [
+          {
+            "node": "Build Spec Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Spec Payload": {
+      "main": [
+        [
+          {
+            "node": "Post To Odoo Spec Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3e668ecd-bf4a-4a18-b3a9-175014dff37e",
+  "meta": {
+    "instanceId": "0c1f8a2d7f50d52b3fb7ef282a2e9f1c5dcfbc4f6aad1fcd918d87dfdd4a791b"
+  },
+  "id": "L3zh1QYQ7hcdephk",
+  "tags": []
+}

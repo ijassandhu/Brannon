@@ -1,0 +1,10 @@
+<odoo>
+    <data>
+        <record id="mtr_logo_page" model="website.page">
+            <field name="name">MTR</field>
+            <field name="url">/mtr</field>
+            <field name="is_published">True</field>
+            <field name="view_id" ref="mtr_module.mtr_logo_page_template"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,7 @@
+<templates id="mtr_list_resend_button" xml:space="preserve">
+  <t t-name="mtr_module.MtrResendPendingButton">
+    <button type="button" class="btn btn-secondary o_mtr_resend_pending">
+      Resend Pending to n8n
+    </button>
+  </t>
+</templates>

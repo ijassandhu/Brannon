@@ -1,0 +1,40 @@
+<odoo>
+    <data>
+        <record id="mtr_logo_page_template" model="ir.ui.view">
+            <field name="name">mtr.logo.page</field>
+            <field name="type">qweb</field>
+            <field name="key">mtr_module.mtr_logo_page_template</field>
+            <field name="arch" type="xml">
+                <t t-call="website.layout">
+                    <div id="wrap" class="oe_structure">
+                        <section class="s_text_block">
+                            <div class="container">
+                                <div class="text-center">
+                                    <img t-attf-src="/mtr_module/static/description/icon.png" alt="MTR Logo" class="img-fluid" style="max-width: 240px; height: auto; background: #fff; padding: 8px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.12);"/>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </t>
+            </field>
+        </record>
+
+        <template id="mtr_chatbot_qweb_template" name="MTR Chatbot">
+            <t t-name="mtr_module.MtrChatbot">
+                <div class="o_mtr_chatbot">
+                    <div class="o_mtr_chatbot_header">MTR Chatbot</div>
+                    <div class="o_mtr_chatbot_body">
+                        <div class="o_mtr_chatbot_messages"></div>
+                    </div>
+                <div class="o_mtr_chatbot_input">
+                    <textarea class="o_mtr_chatbot_input_text" placeholder="Example: Heat number H100 or C >= 0.20, Mn 1.1"></textarea>
+                    <button type="button" class="btn btn-primary o_mtr_chatbot_send">Ask</button>
+                    <button type="button" class="btn btn-secondary o_mtr_chatbot_clear">Clear</button>
+                    <span class="o_mtr_chatbot_loading o_hidden">Searching...</span>
+                </div>
+            </div>
+        </t>
+        </template>
+
+    </data>
+</odoo>

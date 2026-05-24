@@ -464,41 +464,6 @@ class MtrData(models.Model):
         batch = (record.batch_number or "").strip()
         return cert.startswith("PENDING-") or batch.startswith("PENDING-")
 
-    def _payload_has_real_mtr_data(self, payload):
-        """
-        Refresh the join report only when n8n sends actual MTR content.
-        Placeholder creation/update payloads still carry identifiers, but they
-        should not trigger a refresh until real values arrive.
-        """
-        if not isinstance(payload, dict):
-            return False
-
-        ignored_keys = {
-            "mtr_id",
-            "token",
-            "source",
-            "database",
-            "db_name",
-            "file_name",
-            "file_content_base64",
-            "attachment_id",
-            "uploaded_at",
-            "uploaded_by",
-            "force_create",
-            "create_new",
-            "n8n_status",
-            "n8n_status_at",
-        }
-        for key, value in payload.items():
-            if key in ignored_keys:
-                continue
-            if value in (None, "", False, [], {}):
-                continue
-            if key in {"certificate_number", "batch_number", "heat_number"} and str(value).startswith("PENDING-"):
-                continue
-            return True
-        return False
-
     def _drop_legacy_heat_constraint_if_present(self):
         self.env.cr.execute("SELECT to_regclass('public.mtr_data')")
         if not self.env.cr.fetchone()[0]:
@@ -531,10 +496,7 @@ class MtrData(models.Model):
 
     @api.model
     def upsert_from_payload(self, payload):
-        result = self._upsert_from_payload_impl(payload)
-        if self._payload_has_real_mtr_data(payload):
-            self.env["mtr.inventory.join.report"].sudo().refresh_view()
-        return result
+        return self._upsert_from_payload_impl(payload)
 
     def _upsert_from_payload_impl(self, payload):
         if not isinstance(payload, dict):
